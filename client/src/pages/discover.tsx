@@ -114,8 +114,8 @@ export default function DiscoverPage() {
         </div>
       ) : (
         <>
-          <div className="flex-1 flex items-center justify-center px-6 pb-2 relative">
-            <div className="relative w-full max-w-[300px] aspect-[3/4]">
+          <div className="flex-1 flex items-center justify-center px-4 pb-6 pt-1 relative">
+            <div className="relative w-full max-w-[350px] aspect-[3/4]">
               {remaining.slice(0, 3).reverse().map((recipe, reverseIdx) => {
                 const stackIdx = remaining.slice(0, 3).length - 1 - reverseIdx;
                 if (stackIdx === 0) {
@@ -144,27 +144,26 @@ export default function DiscoverPage() {
                   </motion.div>
                 );
               })}
-            </div>
-          </div>
 
-          <div className="flex items-center justify-center gap-10 pb-24 pt-4">
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => handleSwipe("left")}
-              className="w-14 h-14 rounded-2xl bg-card flex items-center justify-center text-muted-foreground shadow-sm"
-              style={{ border: '1px solid hsl(var(--border) / 0.5)' }}
-              data-testid="button-swipe-left"
-            >
-              <X className="w-6 h-6" />
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => handleSwipe("right")}
-              className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-md"
-              data-testid="button-swipe-right"
-            >
-              <Heart className="w-7 h-7" />
-            </motion.button>
+              <div className="absolute left-0 right-0 bottom-5 z-20 flex items-center justify-center gap-8 px-5 pointer-events-none">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleSwipe("left")}
+                  className="w-14 h-14 rounded-full bg-white/25 backdrop-blur-xl border border-white/45 flex items-center justify-center text-white shadow-[0_10px_30px_rgba(15,23,42,0.35)] pointer-events-auto"
+                  data-testid="button-swipe-left"
+                >
+                  <X className="w-6 h-6" />
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleSwipe("right")}
+                  className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-xl border border-white/55 flex items-center justify-center text-white shadow-[0_10px_30px_rgba(239,68,68,0.35)] pointer-events-auto"
+                  data-testid="button-swipe-right"
+                >
+                  <Heart className="w-7 h-7" />
+                </motion.button>
+              </div>
+            </div>
           </div>
         </>
       )}
@@ -260,7 +259,7 @@ function CardContent({ recipe, showAuthor }: { recipe: RecipeWithAuthor; showAut
         <RecipePlaceholder title={recipe.title} className="w-full h-full" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 p-5">
+      <div className="absolute bottom-0 left-0 right-0 p-5 pb-24">
         <h3 className="text-white font-serif text-xl font-bold mb-1 drop-shadow-md">
           {recipe.title}
         </h3>
