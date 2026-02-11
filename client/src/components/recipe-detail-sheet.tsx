@@ -1,11 +1,11 @@
 import type { Recipe } from "@shared/schema";
 import { Drawer } from "vaul";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import RecipePlaceholder from "@/components/recipe-placeholder";
+import { motion } from "framer-motion";
 
 interface RecipeDetailSheetProps {
   recipe: Recipe | null;
@@ -44,17 +44,17 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/50 z-50" />
-        <Drawer.Content className="max-h-[92dvh] rounded-t-2xl outline-none bg-background fixed inset-x-0 bottom-0 z-50">
-          <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-muted mt-3 mb-2" />
-          <div className="overflow-y-auto pb-8 px-5">
-            <div className="flex items-start justify-between gap-3 mb-4">
+        <Drawer.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
+        <Drawer.Content className="max-h-[94dvh] rounded-t-3xl outline-none bg-background fixed inset-x-0 bottom-0 z-50">
+          <div className="mx-auto w-10 h-1 flex-shrink-0 rounded-full bg-muted-foreground/20 mt-3 mb-3" />
+          <div className="overflow-y-auto pb-10 px-6">
+            <div className="flex items-start justify-between gap-3 flex-wrap mb-5">
               <h2 className="font-serif text-2xl font-bold leading-tight flex-1" data-testid="text-recipe-title">
                 {recipe.title}
               </h2>
               <button
                 onClick={() => onOpenChange(false)}
-                className="mt-1 text-muted-foreground p-1"
+                className="mt-1 text-muted-foreground/60 p-1.5 rounded-xl"
                 data-testid="button-close-detail"
               >
                 <X className="w-5 h-5" />
@@ -62,7 +62,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
             </div>
 
             {recipe.imageUrl ? (
-              <div className="rounded-md overflow-hidden mb-5 aspect-[4/3]">
+              <div className="rounded-2xl overflow-hidden mb-5 aspect-[4/3]">
                 <img
                   src={recipe.imageUrl}
                   alt={recipe.title}
@@ -70,13 +70,13 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                 />
               </div>
             ) : (
-              <div className="rounded-md overflow-hidden mb-5 aspect-[4/3]">
+              <div className="rounded-2xl overflow-hidden mb-5 aspect-[4/3]">
                 <RecipePlaceholder title={recipe.title} className="w-full h-full" />
               </div>
             )}
 
             {recipe.description && (
-              <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+              <p className="text-muted-foreground text-sm leading-relaxed mb-5">
                 {recipe.description}
               </p>
             )}
@@ -84,19 +84,20 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
             {recipe.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-6">
                 {recipe.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs font-medium">
+                  <span key={tag} className="text-xs font-medium px-3 py-1 rounded-full bg-primary/8 text-primary">
                     {tag}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             )}
 
-            <div className="mb-6">
-              <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="mb-8">
+              <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
                 <h3 className="font-semibold text-base">Ingredients</h3>
                 <Button
                   size="sm"
                   variant="ghost"
+                  className="rounded-xl text-xs"
                   onClick={() => copyToClipboard(recipe.ingredients.join("\n"), "Ingredients")}
                   data-testid="button-copy-ingredients"
                 >
@@ -104,35 +105,37 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                   Copy
                 </Button>
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {recipe.ingredients.map((item, i) => (
-                  <li
+                  <motion.li
                     key={i}
                     className="flex items-start gap-3 group cursor-pointer"
                     onClick={() => toggleIngredient(i)}
+                    whileTap={{ scale: 0.98 }}
                     data-testid={`ingredient-item-${i}`}
                   >
-                    <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                      checkedIngredients.has(i) ? "bg-primary border-primary" : "border-muted-foreground/30"
+                    <div className={`mt-0.5 w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                      checkedIngredients.has(i) ? "bg-primary" : "bg-muted"
                     }`}>
                       {checkedIngredients.has(i) && <Check className="w-3 h-3 text-primary-foreground" />}
                     </div>
-                    <span className={`text-sm leading-relaxed transition-all ${
-                      checkedIngredients.has(i) ? "line-through text-muted-foreground" : ""
+                    <span className={`text-sm leading-relaxed transition-all duration-200 ${
+                      checkedIngredients.has(i) ? "line-through text-muted-foreground/50" : ""
                     }`}>
                       {item}
                     </span>
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
             </div>
 
             <div>
-              <div className="flex items-center justify-between gap-2 mb-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
                 <h3 className="font-semibold text-base">Steps</h3>
                 <Button
                   size="sm"
                   variant="ghost"
+                  className="rounded-xl text-xs"
                   onClick={() => copyToClipboard(recipe.steps.map((s, i) => `${i + 1}. ${s}`).join("\n"), "Steps")}
                   data-testid="button-copy-steps"
                 >
@@ -140,13 +143,13 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                   Copy
                 </Button>
               </div>
-              <ol className="space-y-4">
+              <ol className="space-y-5">
                 {recipe.steps.map((step, i) => (
-                  <li key={i} className="flex gap-3" data-testid={`step-item-${i}`}>
-                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                  <li key={i} className="flex gap-3.5" data-testid={`step-item-${i}`}>
+                    <div className="w-7 h-7 rounded-lg bg-primary/8 text-primary flex items-center justify-center flex-shrink-0 text-xs font-bold">
                       {i + 1}
                     </div>
-                    <p className="text-sm leading-relaxed pt-0.5">{step}</p>
+                    <p className="text-sm leading-relaxed pt-0.5 text-foreground/80">{step}</p>
                   </li>
                 ))}
               </ol>

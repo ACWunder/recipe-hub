@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Recipe } from "@shared/schema";
-import { Badge } from "@/components/ui/badge";
 import { useRecipeDetail } from "@/components/recipe-detail-context";
 import RecipePlaceholder from "@/components/recipe-placeholder";
 import { Clock } from "lucide-react";
@@ -26,22 +25,22 @@ export default function RecentPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="px-5 pt-5 pb-3">
-        <h1 className="font-serif text-2xl font-bold" data-testid="text-recent-title">Recent</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Freshly added recipes</p>
+      <header className="px-6 pt-6 pb-4">
+        <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-recent-title">Recent</h1>
+        <p className="text-muted-foreground text-sm mt-1">Freshly added recipes</p>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-4">
+      <div className="flex-1 overflow-y-auto px-6 pb-24">
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="aspect-square rounded-md" />
+              <Skeleton key={i} className="aspect-[4/5] rounded-2xl" />
             ))}
           </div>
         ) : !recipes || recipes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Clock className="w-6 h-6 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+              <Clock className="w-7 h-7 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground text-sm">No recent recipes yet</p>
           </div>
@@ -50,40 +49,37 @@ export default function RecentPage() {
             {recipes.map((recipe, i) => (
               <motion.button
                 key={recipe.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.05 }}
-                className="group relative aspect-square rounded-md overflow-visible text-left hover-elevate"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, type: "spring", stiffness: 300, damping: 30 }}
+                className="relative aspect-[4/5] rounded-2xl overflow-hidden text-left active:scale-[0.97] transition-transform"
                 onClick={() => openRecipe(recipe)}
                 data-testid={`recent-item-${recipe.id}`}
               >
-                <div className="rounded-md overflow-hidden w-full h-full">
-                  {recipe.imageUrl ? (
-                    <img
-                      src={recipe.imageUrl}
-                      alt={recipe.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <RecipePlaceholder title={recipe.title} className="w-full h-full" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-md" />
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <h3 className="text-white font-semibold text-sm leading-tight mb-1 drop-shadow-sm">
+                {recipe.imageUrl ? (
+                  <img
+                    src={recipe.imageUrl}
+                    alt={recipe.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <RecipePlaceholder title={recipe.title} className="w-full h-full" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                  <h3 className="text-white font-semibold text-sm leading-tight mb-1.5 drop-shadow-md">
                     {recipe.title}
                   </h3>
                   <div className="flex items-center gap-1.5">
                     {recipe.tags.slice(0, 1).map((tag) => (
-                      <Badge
+                      <span
                         key={tag}
-                        variant="secondary"
-                        className="text-[10px] bg-white/20 text-white/90 border-0 no-default-hover-elevate no-default-active-elevate"
+                        className="text-white/80 bg-white/15 backdrop-blur-sm text-[10px] px-2 py-0.5 rounded-full font-medium"
                       >
                         {tag}
-                      </Badge>
+                      </span>
                     ))}
-                    <span className="text-white/60 text-[10px]">
+                    <span className="text-white/50 text-[10px]">
                       {timeAgo(recipe.createdAt)}
                     </span>
                   </div>

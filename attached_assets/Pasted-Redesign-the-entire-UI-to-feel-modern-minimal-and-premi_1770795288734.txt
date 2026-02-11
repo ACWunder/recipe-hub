@@ -1,0 +1,77 @@
+Redesign the entire UI to feel modern, minimal, and premium — not formal, not corporate, not like an old website.
+
+Keep all functionality exactly the same, but completely upgrade the visual design and UX.
+
+Design direction:
+- Mobile-first (optimized for iPhone)
+- Very clean, airy layout with generous spacing
+- Soft rounded corners (2xl or larger)
+- Subtle shadows and depth (not heavy)
+- Modern typography (e.g. Inter, SF Pro–style feeling)
+- Smooth micro-interactions everywhere
+- Elegant animations with Framer Motion
+- No harsh borders
+- No default HTML styles
+- No “boxy” or outdated UI components
+
+Visual style inspiration:
+- Modern iOS apps
+- Linear.app
+- Notion (clean and calm)
+- Apple Human Interface style
+- Minimal gradients
+- Soft glass / blur effects where appropriate
+
+Specific improvements:
+
+1) Navigation
+- Replace any basic navbar with a beautiful floating bottom tab bar (iOS style).
+- Rounded background with slight blur and shadow.
+- Animated active tab indicator.
+
+2) Cards
+- Recipe cards should feel tactile.
+- Slight scale-up on hover/touch.
+- Soft gradient backgrounds if no image.
+- Smooth swipe animations in Discover section (spring physics, fluid drag).
+
+3) Discover section
+- Make it feel playful and dynamic.
+- Layered card stack effect.
+- Smooth rotation while swiping.
+- Subtle haptic-like visual feedback (color glow on swipe right).
+
+4) Lists
+- Remove boring table-style layout.
+- Use modern card list with spacing.
+- Tags as soft pill chips (rounded, pastel backgrounds).
+
+5) Add Recipe form
+- Clean input fields with floating labels.
+- Rounded fields.
+- Subtle focus states.
+- Modern primary button with soft gradient.
+
+6) Transitions
+- Add smooth animated page transitions between tabs.
+- Use motion layout animations for opening recipe detail.
+
+7) Colors
+- Keep my current base color palette,
+  but apply it in a softer, more modern way.
+- Avoid strong contrasts.
+- Prefer pastel variants and layered neutrals.
+
+8) Typography
+- Clear hierarchy:
+  - Large bold titles
+  - Medium subtitles
+  - Soft secondary text
+- Improve spacing between sections.
+
+Goal:
+The app should feel like a modern startup product in 2026.
+It should feel aesthetic, smooth, and delightful — not technical or default.
+
+Do not change the backend or functionality.
+Only refactor UI, styling, and animations.

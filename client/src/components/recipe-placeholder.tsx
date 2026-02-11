@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils";
 
 const gradients = [
-  "from-emerald-500 to-green-600",
-  "from-teal-400 to-emerald-500",
-  "from-green-400 to-teal-500",
-  "from-lime-400 to-emerald-500",
-  "from-cyan-400 to-teal-500",
-  "from-emerald-400 to-cyan-500",
+  "from-emerald-400/80 to-teal-500/80",
+  "from-teal-400/80 to-cyan-500/80",
+  "from-green-400/80 to-emerald-500/80",
+  "from-cyan-400/80 to-sky-500/80",
+  "from-lime-400/80 to-green-500/80",
+  "from-emerald-300/80 to-green-400/80",
 ];
 
 function getGradient(title: string) {
@@ -40,7 +40,7 @@ export default function RecipePlaceholder({ title, className }: RecipePlaceholde
         className
       )}
     >
-      <span className="text-white/90 font-serif text-3xl font-bold drop-shadow-sm select-none">
+      <span className="text-white/80 font-serif text-3xl font-bold drop-shadow-sm select-none">
         {getInitials(title)}
       </span>
     </div>

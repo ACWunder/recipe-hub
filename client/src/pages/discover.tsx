@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import type { Recipe } from "@shared/schema";
 import { useState, useCallback } from "react";
 import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import { useRecipeDetail } from "@/components/recipe-detail-context";
 import RecipePlaceholder from "@/components/recipe-placeholder";
 import { Heart, X, Sparkles } from "lucide-react";
@@ -22,24 +21,24 @@ export default function DiscoverPage() {
       if (!recipes) return;
       setExitDirection(direction);
       if (direction === "right" && recipes[currentIndex]) {
-        setTimeout(() => openRecipe(recipes[currentIndex]), 300);
+        setTimeout(() => openRecipe(recipes[currentIndex]), 350);
       }
       setTimeout(() => {
         setCurrentIndex((prev) => prev + 1);
         setExitDirection(null);
-      }, 300);
+      }, 350);
     },
     [recipes, currentIndex, openRecipe]
   );
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full items-center justify-center px-6 gap-6">
+      <div className="flex flex-col h-full items-center justify-center px-8 gap-6">
         <div className="text-center mb-2">
-          <Skeleton className="h-8 w-48 mx-auto mb-2" />
-          <Skeleton className="h-4 w-64 mx-auto" />
+          <Skeleton className="h-8 w-48 mx-auto mb-3 rounded-xl" />
+          <Skeleton className="h-4 w-56 mx-auto rounded-lg" />
         </div>
-        <Skeleton className="w-full max-w-sm aspect-[3/4] rounded-2xl" />
+        <Skeleton className="w-full max-w-[300px] aspect-[3/4] rounded-3xl" />
       </div>
     );
   }
@@ -48,12 +47,17 @@ export default function DiscoverPage() {
 
   if (remaining.length === 0) {
     return (
-      <div className="flex flex-col h-full items-center justify-center px-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-          <Sparkles className="w-8 h-8 text-primary" />
-        </div>
+      <div className="flex flex-col h-full items-center justify-center px-8 text-center">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 20 }}
+          className="w-20 h-20 rounded-3xl bg-primary/8 flex items-center justify-center mb-6"
+        >
+          <Sparkles className="w-9 h-9 text-primary" />
+        </motion.div>
         <h2 className="font-serif text-2xl font-bold mb-2">All caught up!</h2>
-        <p className="text-muted-foreground text-sm max-w-[260px]">
+        <p className="text-muted-foreground text-sm max-w-[240px] leading-relaxed">
           You've seen all available recipes. Check back later or add your own.
         </p>
       </div>
@@ -62,13 +66,13 @@ export default function DiscoverPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="px-5 pt-5 pb-3">
-        <h1 className="font-serif text-2xl font-bold" data-testid="text-discover-title">Discover</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Swipe right to view, left to skip</p>
+      <header className="px-6 pt-6 pb-4">
+        <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-discover-title">Discover</h1>
+        <p className="text-muted-foreground text-sm mt-1">Swipe right to save, left to skip</p>
       </header>
 
-      <div className="flex-1 flex items-center justify-center px-5 pb-4 relative">
-        <div className="relative w-full max-w-sm aspect-[3/4]">
+      <div className="flex-1 flex items-center justify-center px-6 pb-2 relative">
+        <div className="relative w-full max-w-[300px] aspect-[3/4]">
           {remaining.slice(0, 3).reverse().map((recipe, reverseIdx) => {
             const stackIdx = remaining.slice(0, 3).length - 1 - reverseIdx;
             if (stackIdx === 0) {
@@ -84,11 +88,12 @@ export default function DiscoverPage() {
             return (
               <motion.div
                 key={recipe.id}
-                className="absolute inset-0 rounded-2xl overflow-hidden"
+                className="absolute inset-0 rounded-3xl overflow-hidden"
                 style={{
-                  scale: 1 - stackIdx * 0.04,
-                  y: stackIdx * 10,
+                  scale: 1 - stackIdx * 0.05,
+                  y: stackIdx * 12,
                   zIndex: 3 - stackIdx,
+                  filter: `brightness(${1 - stackIdx * 0.08})`,
                 }}
               >
                 <CardContent recipe={recipe} />
@@ -98,21 +103,24 @@ export default function DiscoverPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-8 pb-6">
-        <button
+      <div className="flex items-center justify-center gap-10 pb-24 pt-4">
+        <motion.button
+          whileTap={{ scale: 0.9 }}
           onClick={() => handleSwipe("left")}
-          className="w-14 h-14 rounded-full bg-card border flex items-center justify-center text-muted-foreground"
+          className="w-14 h-14 rounded-2xl bg-card flex items-center justify-center text-muted-foreground shadow-sm"
+          style={{ border: '1px solid hsl(var(--border) / 0.5)' }}
           data-testid="button-swipe-left"
         >
           <X className="w-6 h-6" />
-        </button>
-        <button
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
           onClick={() => handleSwipe("right")}
-          className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-primary-foreground"
+          className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-md"
           data-testid="button-swipe-right"
         >
-          <Heart className="w-6 h-6" />
-        </button>
+          <Heart className="w-7 h-7" />
+        </motion.button>
       </div>
     </div>
   );
@@ -128,53 +136,61 @@ function SwipeCard({
   exitDirection: "left" | "right" | null;
 }) {
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-15, 15]);
-  const likeOpacity = useTransform(x, [0, 100], [0, 1]);
-  const nopeOpacity = useTransform(x, [-100, 0], [1, 0]);
+  const rotate = useTransform(x, [-200, 200], [-12, 12]);
+  const likeOpacity = useTransform(x, [0, 80], [0, 1]);
+  const nopeOpacity = useTransform(x, [-80, 0], [1, 0]);
+  const glowOpacity = useTransform(x, [0, 120], [0, 0.3]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 100;
+    const threshold = 80;
     if (info.offset.x > threshold) {
-      animate(x, 500, { type: "spring", duration: 0.4 });
+      animate(x, 500, { type: "spring", duration: 0.5 });
       onSwipe("right");
     } else if (info.offset.x < -threshold) {
-      animate(x, -500, { type: "spring", duration: 0.4 });
+      animate(x, -500, { type: "spring", duration: 0.5 });
       onSwipe("left");
     } else {
-      animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
+      animate(x, 0, { type: "spring", stiffness: 400, damping: 25 });
     }
   };
 
   return (
     <motion.div
-      className="absolute inset-0 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing touch-none select-none"
+      className="absolute inset-0 rounded-3xl overflow-hidden cursor-grab active:cursor-grabbing touch-none select-none shadow-lg"
       style={{ x, rotate, zIndex: 10 }}
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.8}
+      dragElastic={0.9}
       onDragEnd={handleDragEnd}
       animate={
         exitDirection === "left"
-          ? { x: -500, opacity: 0 }
+          ? { x: -500, opacity: 0, rotate: -15 }
           : exitDirection === "right"
-          ? { x: 500, opacity: 0 }
+          ? { x: 500, opacity: 0, rotate: 15 }
           : {}
       }
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      transition={{ type: "spring", stiffness: 250, damping: 25 }}
       data-testid="card-swipe"
     >
       <CardContent recipe={recipe} />
       <motion.div
-        className="absolute top-6 left-6 bg-green-500 text-white font-bold text-lg px-4 py-2 rounded-md -rotate-12"
+        className="absolute inset-0 rounded-3xl pointer-events-none"
+        style={{
+          opacity: glowOpacity,
+          background: "radial-gradient(circle at 70% 50%, hsl(152 50% 50% / 0.4), transparent 70%)",
+        }}
+      />
+      <motion.div
+        className="absolute top-5 left-5 bg-primary/90 backdrop-blur-sm text-primary-foreground font-bold text-sm px-4 py-2 rounded-xl -rotate-12"
         style={{ opacity: likeOpacity }}
       >
-        LIKE
+        SAVE
       </motion.div>
       <motion.div
-        className="absolute top-6 right-6 bg-red-500 text-white font-bold text-lg px-4 py-2 rounded-md rotate-12"
+        className="absolute top-5 right-5 bg-destructive/90 backdrop-blur-sm text-destructive-foreground font-bold text-sm px-4 py-2 rounded-xl rotate-12"
         style={{ opacity: nopeOpacity }}
       >
-        NOPE
+        SKIP
       </motion.div>
     </motion.div>
   );
@@ -193,17 +209,22 @@ function CardContent({ recipe }: { recipe: Recipe }) {
       ) : (
         <RecipePlaceholder title={recipe.title} className="w-full h-full" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 p-5">
-        <h3 className="text-white font-serif text-xl font-bold mb-2 drop-shadow-sm">
+        <h3 className="text-white font-serif text-xl font-bold mb-2.5 drop-shadow-md">
           {recipe.title}
         </h3>
+        {recipe.description && (
+          <p className="text-white/70 text-xs leading-relaxed mb-3 line-clamp-2">
+            {recipe.description}
+          </p>
+        )}
         {recipe.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {recipe.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="text-white/90 bg-white/20 backdrop-blur-sm text-xs px-2.5 py-1 rounded-full font-medium"
+                className="text-white/90 bg-white/15 backdrop-blur-md text-[11px] px-3 py-1 rounded-full font-medium"
               >
                 {tag}
               </span>
