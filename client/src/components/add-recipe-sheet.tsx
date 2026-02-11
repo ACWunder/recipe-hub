@@ -1,12 +1,14 @@
-import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { X, Link as LinkIcon, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Link as LinkIcon, Loader2, Sparkles } from "lucide-react";
+import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface AddRecipeSheetProps {
   open: boolean;
@@ -21,6 +23,24 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
   const [ingredients, setIngredients] = useState("");
   const [steps, setSteps] = useState("");
   const [description, setDescription] = useState("");
+  const [importUrl, setImportUrl] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const resetForm = () => {
+    setTitle("");
+    setImageUrl("");
+    setTags("");
+    setIngredients("");
+    setSteps("");
+    setDescription("");
+    setImportUrl("");
+  };
+
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -56,36 +76,105 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
     },
   });
 
-  const resetForm = () => {
-    setTitle("");
-    setImageUrl("");
-    setTags("");
-    setIngredients("");
-    setSteps("");
-    setDescription("");
-  };
+  const importMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/import-recipe", { url: importUrl.trim() });
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      if (data.title) setTitle(data.title);
+      if (data.description) setDescription(data.description);
+      if (data.imageUrl) setImageUrl(data.imageUrl);
+      if (data.tags && Array.isArray(data.tags)) setTags(data.tags.join(", "));
+      if (data.ingredients && Array.isArray(data.ingredients)) setIngredients(data.ingredients.join("\n"));
+      if (data.steps && Array.isArray(data.steps)) setSteps(data.steps.join("\n"));
+      toast({ title: "Recipe imported!", description: "Review the fields below and save." });
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    },
+    onError: (err: Error) => {
+      toast({ title: "Import failed", description: err.message, variant: "destructive" });
+    },
+  });
 
   const canSubmit = title.trim().length > 0 && ingredients.trim().length > 0 && steps.trim().length > 0;
+  const canImport = importUrl.trim().length > 0 && !importMutation.isPending;
 
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange}>
-      <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
-        <Drawer.Content className="max-h-[94dvh] rounded-t-3xl outline-none bg-background fixed inset-x-0 bottom-0 z-50">
-          <div className="mx-auto w-10 h-1 flex-shrink-0 rounded-full bg-muted-foreground/20 mt-3 mb-3" />
-          <div className="overflow-y-auto pb-10 px-6">
-            <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
-              <h2 className="font-serif text-2xl font-bold">New Recipe</h2>
-              <button
-                onClick={() => onOpenChange(false)}
-                className="text-muted-foreground/60 p-1.5 rounded-xl"
-                data-testid="button-close-add"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPortal>
+        <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
+        <DialogPrimitive.Content
+          className="fixed inset-0 z-50 flex flex-col bg-background outline-none sm:inset-4 sm:rounded-2xl sm:m-auto sm:max-w-lg sm:max-h-[92vh]"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          data-testid="modal-add-recipe"
+        >
+          <VisuallyHidden>
+            <DialogPrimitive.Title>Add Recipe</DialogPrimitive.Title>
+            <DialogPrimitive.Description>Create a new recipe or import from URL</DialogPrimitive.Description>
+          </VisuallyHidden>
 
+          <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-3 flex-shrink-0 border-b border-border/40">
+            <h2 className="font-serif text-2xl font-bold" data-testid="text-add-recipe-title">New Recipe</h2>
+            <button
+              onClick={() => onOpenChange(false)}
+              className="text-muted-foreground/60 p-1.5 rounded-xl"
+              data-testid="button-close-add"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-5">
             <div className="space-y-5">
+              <div className="rounded-2xl bg-card p-4">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <LinkIcon className="w-3 h-3" />
+                  Import from URL
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Paste a recipe URL..."
+                    value={importUrl}
+                    onChange={(e) => setImportUrl(e.target.value)}
+                    className="rounded-xl bg-background border-0 flex-1"
+                    data-testid="input-import-url"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && canImport) {
+                        e.preventDefault();
+                        importMutation.mutate();
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={() => importMutation.mutate()}
+                    disabled={!canImport}
+                    className="rounded-xl flex-shrink-0"
+                    data-testid="button-import"
+                  >
+                    {importMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+                {importMutation.isPending && (
+                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Fetching and parsing recipe...
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-border/40" />
+                <span className="text-xs text-muted-foreground font-medium">or fill in manually</span>
+                <div className="flex-1 h-px bg-border/40" />
+              </div>
+
               <div>
                 <label htmlFor="title" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Title *</label>
                 <Input
@@ -159,39 +248,28 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
                   data-testid="input-steps"
                 />
               </div>
-
-              <div className="pt-1 pb-2 opacity-40">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <LinkIcon className="w-3 h-3" />
-                  Import from URL (coming soon)
-                </label>
-                <Input
-                  disabled
-                  placeholder="Paste a recipe URL to auto-import"
-                  className="rounded-xl bg-card border-0"
-                  data-testid="input-import-url"
-                />
-              </div>
-
-              <Button
-                onClick={() => mutation.mutate()}
-                disabled={!canSubmit || mutation.isPending}
-                className="w-full rounded-xl text-sm font-semibold"
-                data-testid="button-submit-recipe"
-              >
-                {mutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  "Add Recipe"
-                )}
-              </Button>
             </div>
           </div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+
+          <div className="flex-shrink-0 px-6 py-4 border-t border-border/40 bg-background safe-area-bottom">
+            <Button
+              onClick={() => mutation.mutate()}
+              disabled={!canSubmit || mutation.isPending}
+              className="w-full rounded-xl text-sm font-semibold"
+              data-testid="button-submit-recipe"
+            >
+              {mutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                "Save Recipe"
+              )}
+            </Button>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    </Dialog>
   );
 }

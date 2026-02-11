@@ -6,6 +6,7 @@ import { ZodError } from "zod";
 import { requireAuth } from "./auth";
 import passport from "passport";
 import bcrypt from "bcryptjs";
+import OpenAI from "openai";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -163,6 +164,146 @@ export async function registerRoutes(
       res.json(following);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch following" });
+    }
+  });
+
+  app.post("/api/import-recipe", requireAuth, async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ message: "A valid URL is required" });
+      }
+
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(url);
+      } catch {
+        return res.status(400).json({ message: "Invalid URL format" });
+      }
+
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        return res.status(400).json({ message: "Only HTTP/HTTPS URLs are supported" });
+      }
+
+      const hostname = parsedUrl.hostname.toLowerCase();
+      const blockedPatterns = ["localhost", "127.0.0.1", "0.0.0.0", "::1", "169.254.", "10.", "192.168.", "172.16.", "172.17.", "172.18.", "172.19.", "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.", "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31."];
+      if (blockedPatterns.some(p => hostname === p || hostname.startsWith(p))) {
+        return res.status(400).json({ message: "This URL is not allowed" });
+      }
+
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "OpenAI API key is not configured" });
+      }
+
+      let html: string;
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const fetchRes = await fetch(parsedUrl.toString(), {
+          signal: controller.signal,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; Recipease/1.0)",
+            "Accept": "text/html,application/xhtml+xml",
+          },
+        });
+        clearTimeout(timeout);
+        if (!fetchRes.ok) {
+          return res.status(400).json({ message: `Could not fetch URL (HTTP ${fetchRes.status})` });
+        }
+        html = await fetchRes.text();
+      } catch (fetchErr: any) {
+        return res.status(400).json({ message: fetchErr?.name === "AbortError" ? "Request timed out" : "Could not fetch URL" });
+      }
+
+      let ogImage = "";
+      const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+      if (ogMatch) ogImage = ogMatch[1];
+
+      let jsonLd = "";
+      const ldMatches = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+      if (ldMatches) {
+        for (const m of ldMatches) {
+          const inner = m.replace(/<script[^>]*>/i, "").replace(/<\/script>/i, "");
+          try {
+            const parsed = JSON.parse(inner);
+            const isRecipe = (obj: any) =>
+              obj?.["@type"] === "Recipe" ||
+              (Array.isArray(obj?.["@type"]) && obj["@type"].includes("Recipe"));
+            if (isRecipe(parsed)) {
+              jsonLd = inner;
+              if (!ogImage && parsed.image) {
+                ogImage = typeof parsed.image === "string" ? parsed.image : (Array.isArray(parsed.image) ? parsed.image[0] : parsed.image?.url || "");
+              }
+              break;
+            }
+            if (Array.isArray(parsed?.["@graph"])) {
+              const recipe = parsed["@graph"].find(isRecipe);
+              if (recipe) {
+                jsonLd = JSON.stringify(recipe);
+                if (!ogImage && recipe.image) {
+                  ogImage = typeof recipe.image === "string" ? recipe.image : (Array.isArray(recipe.image) ? recipe.image[0] : recipe.image?.url || "");
+                }
+                break;
+              }
+            }
+          } catch {}
+        }
+      }
+
+      const textContent = html
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 6000);
+
+      const systemPrompt = `You extract recipe data from web page content. Return ONLY valid JSON with this exact schema:
+{"title":"string","description":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}
+No extra text, no markdown, no code fences. Just the JSON object.`;
+
+      const userContent = jsonLd
+        ? `Recipe JSON-LD:\n${jsonLd.slice(0, 3000)}\n\nPage text:\n${textContent.slice(0, 3000)}`
+        : `Page text:\n${textContent}`;
+
+      const openai = new OpenAI({ apiKey });
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 1200,
+        temperature: 0.1,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
+      });
+
+      const raw = completion.choices?.[0]?.message?.content?.trim() || "";
+      let recipeData: any;
+      try {
+        const cleaned = raw.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+        recipeData = JSON.parse(cleaned);
+      } catch {
+        return res.status(500).json({ message: "Failed to parse recipe from page" });
+      }
+
+      const result = {
+        title: typeof recipeData.title === "string" ? recipeData.title.slice(0, 200) : "",
+        description: typeof recipeData.description === "string" ? recipeData.description.slice(0, 500) : null,
+        imageUrl: ogImage || null,
+        tags: Array.isArray(recipeData.tags) ? recipeData.tags.filter((t: any) => typeof t === "string").slice(0, 10) : [],
+        ingredients: Array.isArray(recipeData.ingredients) ? recipeData.ingredients.filter((i: any) => typeof i === "string").slice(0, 50) : [],
+        steps: Array.isArray(recipeData.steps) ? recipeData.steps.filter((s: any) => typeof s === "string").slice(0, 30) : [],
+      };
+
+      if (!result.title || result.ingredients.length === 0 || result.steps.length === 0) {
+        return res.status(400).json({ message: "Could not extract a complete recipe from this page" });
+      }
+
+      res.json(result);
+    } catch (err: any) {
+      console.error("Import recipe error:", err);
+      res.status(500).json({ message: "Failed to import recipe" });
     }
   });
 
