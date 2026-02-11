@@ -53,6 +53,10 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
 
   if (!recipe) return null;
 
+  const tags = Array.isArray(recipe.tags) ? recipe.tags : [];
+  const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+  const steps = Array.isArray(recipe.steps) ? recipe.steps : [];
+
   const isOwner = user && recipe.createdByUserId === user.id;
 
   const toggleIngredient = (index: number) => {
@@ -131,9 +135,9 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                 </p>
               )}
 
-              {recipe.tags.length > 0 && (
+              {tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {recipe.tags.map((tag) => (
+                  {tags.map((tag) => (
                     <span key={tag} className="text-xs font-medium px-3 py-1 rounded-full bg-primary/8 text-primary">
                       {tag}
                     </span>
@@ -148,7 +152,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                     size="sm"
                     variant="ghost"
                     className="rounded-xl text-xs"
-                    onClick={() => copyToClipboard(recipe.ingredients.join("\n"), "Ingredients")}
+                    onClick={() => copyToClipboard(ingredients.join("\n"), "Ingredients")}
                     data-testid="button-copy-ingredients"
                   >
                     <Copy className="w-3.5 h-3.5 mr-1.5" />
@@ -156,7 +160,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                   </Button>
                 </div>
                 <ul className="space-y-3">
-                  {recipe.ingredients.map((item, i) => (
+                  {ingredients.map((item, i) => (
                     <motion.li
                       key={i}
                       className="flex items-start gap-3 group cursor-pointer"
@@ -186,7 +190,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                     size="sm"
                     variant="ghost"
                     className="rounded-xl text-xs"
-                    onClick={() => copyToClipboard(recipe.steps.map((s, i) => `${i + 1}. ${s}`).join("\n"), "Steps")}
+                    onClick={() => copyToClipboard(steps.map((s, i) => `${i + 1}. ${s}`).join("\n"), "Steps")}
                     data-testid="button-copy-steps"
                   >
                     <Copy className="w-3.5 h-3.5 mr-1.5" />
@@ -194,7 +198,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                   </Button>
                 </div>
                 <ol className="space-y-5">
-                  {recipe.steps.map((step, i) => (
+                  {steps.map((step, i) => (
                     <li key={i} className="flex gap-3.5" data-testid={`step-item-${i}`}>
                       <div className="w-7 h-7 rounded-lg bg-primary/8 text-primary flex items-center justify-center flex-shrink-0 text-xs font-bold">
                         {i + 1}

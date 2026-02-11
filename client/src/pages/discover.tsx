@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { RecipeWithAuthor } from "@shared/schema";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { useRecipeDetail } from "@/components/recipe-detail-context";
 import RecipePlaceholder from "@/components/recipe-placeholder";
@@ -23,15 +23,33 @@ export default function DiscoverPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
   const { openRecipe } = useRecipeDetail();
+  const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
+      if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+    };
+  }, []);
 
   const handleSwipe = useCallback(
     (direction: "left" | "right") => {
       if (!recipes) return;
+
+      if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
+      if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+
       setExitDirection(direction);
+
       if (direction === "right" && recipes[currentIndex]) {
-        setTimeout(() => openRecipe(recipes[currentIndex]), 350);
+        openTimeoutRef.current = setTimeout(() => {
+          const recipe = recipes[currentIndex];
+          if (recipe) openRecipe(recipe);
+        }, 350);
       }
-      setTimeout(() => {
+
+      swipeTimeoutRef.current = setTimeout(() => {
         setCurrentIndex((prev) => prev + 1);
         setExitDirection(null);
       }, 350);
