@@ -6,7 +6,7 @@ import { ZodError } from "zod";
 import { requireAuth } from "./auth";
 import passport from "passport";
 import bcrypt from "bcryptjs";
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -191,9 +191,9 @@ export async function registerRoutes(
         return res.status(400).json({ message: "This URL is not allowed" });
       }
 
-      const apiKey = process.env.GOOGLE_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ message: "Google API key is not configured" });
+      const groqKey = process.env.GROQ_API_KEY;
+      if (!groqKey) {
+        return res.status(500).json({ message: "Groq API key is not configured" });
       }
 
       let html: string;
@@ -259,36 +259,25 @@ export async function registerRoutes(
         .trim()
         .slice(0, 6000);
 
-      const prompt = `You extract recipe data from web page content. Return ONLY valid JSON with this exact schema:
-{"title":"string","description":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}
-Rules: ingredients one item per entry no numbering, steps concise ordered one per entry, tags 3-8 lowercase short words. No extra text, no markdown, no code fences. Just the JSON object.
+      const userContent = jsonLd
+        ? `Recipe JSON-LD:\n${jsonLd.slice(0, 3000)}\n\nPage text:\n${textContent.slice(0, 3000)}`
+        : `Page text:\n${textContent}`;
 
-${jsonLd ? `Recipe JSON-LD:\n${jsonLd.slice(0, 3000)}\n\nPage text:\n${textContent.slice(0, 3000)}` : `Page text:\n${textContent}`}`;
+      const groq = new OpenAI({ apiKey: groqKey, baseURL: "https://api.groq.com/openai/v1" });
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "system",
+            content: `You extract recipe data from web page content. Return ONLY valid JSON with this exact schema:\n{"title":"string","description":"string or null","imageUrl":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}\nRules: ingredients one item per entry no numbering, steps concise ordered one per entry, tags 3-8 lowercase short words, imageUrl null unless found in content. No extra text, no markdown, no code fences. Just the JSON object.`,
+          },
+          { role: "user", content: userContent },
+        ],
+        max_tokens: 1200,
+        temperature: 0.1,
+      });
 
-      const ai = new GoogleGenAI({ apiKey });
-      let response: any;
-      const models = ["gemini-2.0-flash-lite", "gemini-2.0-flash"];
-      let lastErr: any;
-      for (const model of models) {
-        try {
-          response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-            config: {
-              maxOutputTokens: 1200,
-              temperature: 0.1,
-            },
-          });
-          break;
-        } catch (modelErr: any) {
-          lastErr = modelErr;
-          if (modelErr?.status === 429) continue;
-          throw modelErr;
-        }
-      }
-      if (!response) throw lastErr;
-
-      const raw = (response.text || "").trim();
+      const raw = (completion.choices?.[0]?.message?.content || "").trim();
       let recipeData: any;
       try {
         const cleaned = raw.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
@@ -314,14 +303,12 @@ ${jsonLd ? `Recipe JSON-LD:\n${jsonLd.slice(0, 3000)}\n\nPage text:\n${textConte
     } catch (err: any) {
       console.error("Import recipe error:", err);
       const msg = err?.message || "";
-      if (msg.includes("API_KEY_INVALID") || msg.includes("API key not valid")) {
-        return res.status(401).json({ message: "Google API key is invalid. Please update it in your secrets." });
+      const status = err?.status || err?.response?.status;
+      if (status === 401 || msg.includes("invalid_api_key") || msg.includes("Unauthorized")) {
+        return res.status(401).json({ message: "Groq API key is invalid. Please update it in your secrets." });
       }
-      if (msg.includes("RATE_LIMIT") || msg.includes("quota") || err?.status === 429) {
+      if (status === 429 || msg.includes("rate_limit") || msg.includes("quota")) {
         return res.status(429).json({ message: "Rate limit reached. Please wait a moment and try again." });
-      }
-      if (msg.includes("SAFETY")) {
-        return res.status(400).json({ message: "The content was blocked by safety filters. Try a different recipe URL." });
       }
       res.status(500).json({ message: "Failed to import recipe. Please try again." });
     }
