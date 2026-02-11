@@ -1,0 +1,38 @@
+Fix the “Add Recipe” modal and implement URL import using the OpenAI API.
+
+A) Bugfix: Add Recipe modal UX
+- Currently I can type into fields but the “Save” button is not clickable. Fix layout/overlay/z-index/pointer-events so the button is always tappable on iPhone.
+- When scrolling down, the modal closes automatically. Remove any “close on scroll / drag down to close” behavior.
+- The modal must ONLY close when the user taps the “X” (and optionally when pressing Escape on desktop).
+- Ensure proper iOS safe-area handling and that content is scrollable inside the modal without cutting off bottom content. Use a sticky footer with the Save button if needed.
+
+B) Implement “Import from URL” (fully working)
+- In the Add Recipe view, add an input for a recipe URL and an “Import” button.
+- Create a backend endpoint (e.g. POST /api/import-recipe) that:
+  1) Fetches the HTML from the provided URL (server-side).
+  2) Extracts relevant text (title, ingredients, steps) from the page. If available, also read Recipe Schema.org JSON-LD.
+  3) Calls OpenAI to convert the scraped content into our canonical Recipe JSON:
+     { title, description?, imageUrl?, tags: string[], ingredients: string[], steps: string[] }
+  4) Returns that JSON to the client and pre-fills the form fields.
+- Use streaming or loading states and show errors nicely (invalid URL, fetch blocked, parse failed).
+
+Image handling
+- First choice: use the site’s main image (OpenGraph og:image or JSON-LD “image”).
+- If no image is available, generate a nice placeholder (gradient card) rather than failing.
+- Do NOT require image generation via OpenAI unless absolutely necessary.
+
+OpenAI integration (secure)
+- Read the API key from environment variable OPENAI_API_KEY ONLY.
+- Do NOT hardcode keys anywhere.
+- Add README instructions for setting OPENAI_API_KEY in Replit and on Vercel.
+
+OpenAI prompt/output requirements
+- The OpenAI response must be strict JSON matching the schema above (no extra text).
+- Validate and sanitize the model output server-side before using it.
+- Keep costs low: concise system prompt, limit max tokens, and use a single call per import.
+
+Deliverables
+- Clicking Save works reliably on iPhone.
+- Modal never closes on scroll.
+- Import from URL fetches, parses, calls OpenAI, and pre-fills the form.
+- Add tests or at least a simple server-side validation function for Recipe JSON.
