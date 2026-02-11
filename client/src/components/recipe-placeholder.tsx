@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils";
 
 const gradients = [
-  "from-orange-400 to-rose-400",
-  "from-emerald-400 to-teal-400",
-  "from-violet-400 to-purple-400",
-  "from-amber-400 to-orange-400",
-  "from-sky-400 to-blue-400",
-  "from-pink-400 to-fuchsia-400",
+  "from-emerald-500 to-green-600",
+  "from-teal-400 to-emerald-500",
+  "from-green-400 to-teal-500",
+  "from-lime-400 to-emerald-500",
+  "from-cyan-400 to-teal-500",
+  "from-emerald-400 to-cyan-500",
 ];
 
 function getGradient(title: string) {
