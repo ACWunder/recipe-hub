@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, unique, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -20,6 +20,7 @@ export const recipes = pgTable("recipes", {
   steps: text("steps").array().notNull().default(sql`'{}'::text[]`),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdByUserId: varchar("created_by_user_id", { length: 255 }),
+  isBase: boolean("is_base").notNull().default(false),
 });
 
 export const follows = pgTable("follows", {
@@ -32,7 +33,7 @@ export const follows = pgTable("follows", {
 ]);
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
-export const insertRecipeSchema = createInsertSchema(recipes).omit({ id: true, createdAt: true });
+export const insertRecipeSchema = createInsertSchema(recipes).omit({ id: true, createdAt: true, isBase: true });
 
 export const signupSchema = z.object({
   username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
@@ -52,3 +53,5 @@ export type Recipe = typeof recipes.$inferSelect;
 export type Follow = typeof follows.$inferSelect;
 
 export type SafeUser = Omit<User, "passwordHash">;
+
+export type RecipeWithAuthor = Recipe & { authorUsername: string | null };

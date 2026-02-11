@@ -1,0 +1,52 @@
+Implement the following updates (keep the app mobile-first and the existing modern UI/animations):
+
+1) Delete recipes
+- Users must be able to delete recipes they created (“mine”).
+- Add a Delete action in the recipe detail view (and/or list item overflow menu).
+- Confirm before deleting.
+- After delete: update UI immediately (Discover stack, list, recent).
+
+2) Recent tab filters
+- Recent should have the same filter UI pattern as Discover/Recipes.
+- In Recent, the filter options are ONLY:
+  - “Mine”
+  - “Following”
+- No “All” in Recent.
+
+3) Show recipe author when not Mine
+- Whenever the current filter is “Following” (and also when viewing “All” where applicable), show the recipe’s author in small text, e.g. “by @username”.
+- Do this consistently in:
+  - Discover cards
+  - Recipes list items
+  - Recent grid/list items
+- Ensure the backend returns author username for each recipe (join with User).
+
+4) Add a “Base” filter
+- Add a third filter category named “Base”.
+- “Base” = recipes that shipped with the app (seed/original recipes).
+- Update the data model: add a boolean like `isBase` (default false) or an enum `source: BASE | USER`.
+- Seed recipes must be marked as Base.
+- Filtering behavior:
+  - Mine = createdByUserId == me
+  - Following = createdByUserId in users I follow
+  - Base = isBase == true
+
+5) Image upload from Photos/Camera + still allow URL
+- In “Add Recipe”, support 3 image input methods:
+  a) Upload/select from Photos
+  b) Take a photo (camera)
+  c) Image URL (keep this option)
+- Make the UI compact and iPhone-friendly (e.g., a small segmented control or icon buttons).
+- When user uploads/takes a photo:
+  - Upload it to storage and save a persistent URL in `imageUrl`.
+  - Use a simple, reliable solution compatible with the current hosting plan (e.g., Supabase Storage, Cloudinary, or another easy storage provider). Add required env vars and README setup.
+- Ensure the existing “Import from URL” flow still works and can populate an image when available.
+
+Deliverables:
+- Fully working delete flow.
+- Recent filter matches the existing filter component style, with Mine/Following only.
+- Author display “by @username” shows correctly across Discover/Recipes/Recent when applicable.
+- Base filter works everywhere filters exist.
+- Add Recipe supports photo upload/camera + image URL, and stores images reliably.
+``
+::contentReference[oaicite:0]{index=0}

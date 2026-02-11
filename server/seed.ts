@@ -27,6 +27,7 @@ const seedRecipes = [
       "Serve immediately with extra Pecorino and black pepper",
     ],
     createdByUserId: "seed",
+    isBase: true,
   },
   {
     title: "Hawaiian Poke Bowl",
@@ -53,6 +54,7 @@ const seedRecipes = [
       "Serve with pickled ginger on the side",
     ],
     createdByUserId: "seed",
+    isBase: true,
   },
   {
     title: "Fluffy Blueberry Pancakes",
@@ -81,6 +83,7 @@ const seedRecipes = [
       "Stack pancakes and serve with butter and warm maple syrup",
     ],
     createdByUserId: "seed",
+    isBase: true,
   },
 ];
 

@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Recipe, type InsertRecipe, type Follow, type SafeUser, users, recipes, follows } from "@shared/schema";
+import { type User, type InsertUser, type Recipe, type InsertRecipe, type Follow, type SafeUser, type RecipeWithAuthor, users, recipes, follows } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, ilike, and, ne, inArray } from "drizzle-orm";
 
@@ -13,10 +13,11 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   searchUsers(query: string, excludeUserId: string): Promise<SafeUser[]>;
 
-  getAllRecipes(scope?: string, userId?: string, followingIds?: string[]): Promise<Recipe[]>;
-  getRecentRecipes(limit: number, scope?: string, userId?: string, followingIds?: string[]): Promise<Recipe[]>;
+  getAllRecipes(scope?: string, userId?: string, followingIds?: string[]): Promise<RecipeWithAuthor[]>;
+  getRecentRecipes(limit: number, scope?: string, userId?: string, followingIds?: string[]): Promise<RecipeWithAuthor[]>;
   getRecipeById(id: string): Promise<Recipe | undefined>;
   createRecipe(recipe: InsertRecipe): Promise<Recipe>;
+  deleteRecipe(id: string): Promise<boolean>;
 
   follow(followerUserId: string, followingUserId: string): Promise<Follow>;
   unfollow(followerUserId: string, followingUserId: string): Promise<boolean>;
@@ -48,8 +49,26 @@ export class DatabaseStorage implements IStorage {
     return results.map(toSafeUser);
   }
 
-  private applyScope(allRecipes: Recipe[], scope?: string, userId?: string, followingIds?: string[]): Recipe[] {
-    if (!scope || scope === "all" || !userId) return allRecipes;
+  private async fetchRecipesWithAuthor(): Promise<RecipeWithAuthor[]> {
+    const rows = await db
+      .select({
+        recipe: recipes,
+        authorUsername: users.username,
+      })
+      .from(recipes)
+      .leftJoin(users, eq(recipes.createdByUserId, users.id))
+      .orderBy(desc(recipes.createdAt));
+
+    return rows.map(r => ({
+      ...r.recipe,
+      authorUsername: r.authorUsername || null,
+    }));
+  }
+
+  private applyScope(allRecipes: RecipeWithAuthor[], scope?: string, userId?: string, followingIds?: string[]): RecipeWithAuthor[] {
+    if (!scope || scope === "all") return allRecipes;
+    if (scope === "base") return allRecipes.filter(r => r.isBase);
+    if (!userId) return allRecipes;
     if (scope === "mine") return allRecipes.filter(r => r.createdByUserId === userId);
     if (scope === "following") {
       if (!followingIds || followingIds.length === 0) return [];
@@ -58,13 +77,13 @@ export class DatabaseStorage implements IStorage {
     return allRecipes;
   }
 
-  async getAllRecipes(scope?: string, userId?: string, followingIds?: string[]): Promise<Recipe[]> {
-    const all = await db.select().from(recipes).orderBy(desc(recipes.createdAt));
+  async getAllRecipes(scope?: string, userId?: string, followingIds?: string[]): Promise<RecipeWithAuthor[]> {
+    const all = await this.fetchRecipesWithAuthor();
     return this.applyScope(all, scope, userId, followingIds);
   }
 
-  async getRecentRecipes(limit = 20, scope?: string, userId?: string, followingIds?: string[]): Promise<Recipe[]> {
-    const all = await db.select().from(recipes).orderBy(desc(recipes.createdAt)).limit(100);
+  async getRecentRecipes(limit = 20, scope?: string, userId?: string, followingIds?: string[]): Promise<RecipeWithAuthor[]> {
+    const all = await this.fetchRecipesWithAuthor();
     const filtered = this.applyScope(all, scope, userId, followingIds);
     return filtered.slice(0, limit);
   }
@@ -77,6 +96,11 @@ export class DatabaseStorage implements IStorage {
   async createRecipe(recipe: InsertRecipe): Promise<Recipe> {
     const [created] = await db.insert(recipes).values(recipe).returning();
     return created;
+  }
+
+  async deleteRecipe(id: string): Promise<boolean> {
+    const result = await db.delete(recipes).where(eq(recipes.id, id)).returning();
+    return result.length > 0;
   }
 
   async follow(followerUserId: string, followingUserId: string): Promise<Follow> {

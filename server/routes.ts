@@ -7,11 +7,14 @@ import { requireAuth } from "./auth";
 import passport from "passport";
 import bcrypt from "bcryptjs";
 import OpenAI from "openai";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  registerObjectStorageRoutes(app);
 
   app.post("/api/auth/signup", async (req, res) => {
     try {
@@ -118,6 +121,21 @@ export async function registerRoutes(
         return res.status(400).json({ message: err.errors.map(e => e.message).join(", ") });
       }
       res.status(500).json({ message: "Failed to create recipe" });
+    }
+  });
+
+  app.delete("/api/recipes/:id", requireAuth, async (req, res) => {
+    try {
+      const id = req.params.id as string;
+      const recipe = await storage.getRecipeById(id);
+      if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+      if (recipe.createdByUserId !== req.user!.id) {
+        return res.status(403).json({ message: "You can only delete your own recipes" });
+      }
+      await storage.deleteRecipe(id);
+      res.json({ message: "Recipe deleted" });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete recipe" });
     }
   });
 

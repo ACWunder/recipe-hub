@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Recipe } from "@shared/schema";
+import type { RecipeWithAuthor } from "@shared/schema";
 import { useState, useCallback } from "react";
 import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { useRecipeDetail } from "@/components/recipe-detail-context";
@@ -9,14 +9,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import AuthSheet from "@/components/auth-sheet";
 
-type FilterScope = "all" | "mine" | "following";
+type FilterScope = "all" | "mine" | "following" | "base";
 
 export default function DiscoverPage() {
   const { user } = useAuth();
   const [scope, setScope] = useState<FilterScope>("all");
   const [authOpen, setAuthOpen] = useState(false);
 
-  const { data: recipes, isLoading } = useQuery<Recipe[]>({
+  const { data: recipes, isLoading } = useQuery<RecipeWithAuthor[]>({
     queryKey: ["/api/recipes", `?scope=${scope}`],
   });
 
@@ -62,6 +62,7 @@ export default function DiscoverPage() {
   }
 
   const remaining = recipes ? recipes.slice(currentIndex) : [];
+  const showAuthor = scope !== "mine";
 
   return (
     <div className="flex flex-col h-full">
@@ -78,7 +79,7 @@ export default function DiscoverPage() {
         </div>
         <p className="text-muted-foreground text-sm mb-3">Swipe right to save, left to skip</p>
         <div className="flex gap-2 pb-2">
-          {(["all", "mine", "following"] as FilterScope[]).map((s) => (
+          {(["all", "mine", "following", "base"] as FilterScope[]).map((s) => (
             <button
               key={s}
               onClick={() => handleScopeChange(s)}
@@ -87,7 +88,7 @@ export default function DiscoverPage() {
               }`}
               data-testid={`filter-discover-${s}`}
             >
-              {s === "all" ? "All" : s === "mine" ? "Mine" : "Following"}
+              {s === "all" ? "All" : s === "mine" ? "Mine" : s === "following" ? "Following" : "Base"}
             </button>
           ))}
         </div>
@@ -107,6 +108,7 @@ export default function DiscoverPage() {
           <p className="text-muted-foreground text-sm max-w-[240px] leading-relaxed">
             {scope === "mine" ? "You haven't added any recipes yet." :
              scope === "following" ? "No recipes from people you follow yet." :
+             scope === "base" ? "No base recipes available." :
              "You've seen all available recipes."}
           </p>
         </div>
@@ -123,6 +125,7 @@ export default function DiscoverPage() {
                       recipe={recipe}
                       onSwipe={handleSwipe}
                       exitDirection={exitDirection}
+                      showAuthor={showAuthor}
                     />
                   );
                 }
@@ -137,7 +140,7 @@ export default function DiscoverPage() {
                       filter: `brightness(${1 - stackIdx * 0.08})`,
                     }}
                   >
-                    <CardContent recipe={recipe} />
+                    <CardContent recipe={recipe} showAuthor={showAuthor} />
                   </motion.div>
                 );
               })}
@@ -175,10 +178,12 @@ function SwipeCard({
   recipe,
   onSwipe,
   exitDirection,
+  showAuthor,
 }: {
-  recipe: Recipe;
+  recipe: RecipeWithAuthor;
   onSwipe: (dir: "left" | "right") => void;
   exitDirection: "left" | "right" | null;
+  showAuthor: boolean;
 }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-12, 12]);
@@ -217,7 +222,7 @@ function SwipeCard({
       transition={{ type: "spring", stiffness: 250, damping: 25 }}
       data-testid="card-swipe"
     >
-      <CardContent recipe={recipe} />
+      <CardContent recipe={recipe} showAuthor={showAuthor} />
       <motion.div
         className="absolute inset-0 rounded-3xl pointer-events-none"
         style={{
@@ -241,7 +246,7 @@ function SwipeCard({
   );
 }
 
-function CardContent({ recipe }: { recipe: Recipe }) {
+function CardContent({ recipe, showAuthor }: { recipe: RecipeWithAuthor; showAuthor: boolean }) {
   return (
     <div className="relative w-full h-full">
       {recipe.imageUrl ? (
@@ -256,9 +261,19 @@ function CardContent({ recipe }: { recipe: Recipe }) {
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 p-5">
-        <h3 className="text-white font-serif text-xl font-bold mb-2.5 drop-shadow-md">
+        <h3 className="text-white font-serif text-xl font-bold mb-1 drop-shadow-md">
           {recipe.title}
         </h3>
+        {showAuthor && recipe.authorUsername && (
+          <p className="text-white/60 text-xs mb-2" data-testid={`author-${recipe.id}`}>
+            by @{recipe.authorUsername}
+          </p>
+        )}
+        {showAuthor && recipe.isBase && (
+          <p className="text-white/60 text-xs mb-2" data-testid={`author-${recipe.id}`}>
+            by Recipease
+          </p>
+        )}
         {recipe.description && (
           <p className="text-white/70 text-xs leading-relaxed mb-3 line-clamp-2">
             {recipe.description}

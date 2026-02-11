@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Recipe } from "@shared/schema";
+import type { RecipeWithAuthor } from "@shared/schema";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import AuthSheet from "@/components/auth-sheet";
 import FollowingSheet from "@/components/friends-sheet";
 
-type FilterScope = "all" | "mine" | "following";
+type FilterScope = "all" | "mine" | "following" | "base";
 
 export default function AllRecipesPage() {
   const { user } = useAuth();
@@ -21,7 +21,7 @@ export default function AllRecipesPage() {
   const [authOpen, setAuthOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
 
-  const { data: recipes, isLoading } = useQuery<Recipe[]>({
+  const { data: recipes, isLoading } = useQuery<RecipeWithAuthor[]>({
     queryKey: ["/api/recipes", `?scope=${scope}`],
   });
 
@@ -56,6 +56,8 @@ export default function AllRecipesPage() {
     setAddOpen(true);
   };
 
+  const showAuthor = scope !== "mine";
+
   return (
     <div className="flex flex-col h-full">
       <header className="px-6 pt-6 pb-2">
@@ -75,7 +77,7 @@ export default function AllRecipesPage() {
         </div>
 
         <div className="flex gap-2 mb-3">
-          {(["all", "mine", "following"] as FilterScope[]).map((s) => (
+          {(["all", "mine", "following", "base"] as FilterScope[]).map((s) => (
             <button
               key={s}
               onClick={() => handleScopeChange(s)}
@@ -84,7 +86,7 @@ export default function AllRecipesPage() {
               }`}
               data-testid={`filter-recipes-${s}`}
             >
-              {s === "all" ? "All" : s === "mine" ? "Mine" : "Following"}
+              {s === "all" ? "All" : s === "mine" ? "Mine" : s === "following" ? "Following" : "Base"}
             </button>
           ))}
         </div>
@@ -153,6 +155,7 @@ export default function AllRecipesPage() {
             <p className="text-muted-foreground text-sm">
               {scope === "mine" ? "You haven't added any recipes yet" :
                scope === "following" ? "No recipes from people you follow yet" :
+               scope === "base" ? "No base recipes available" :
                "No recipes found"}
             </p>
           </div>
@@ -185,9 +188,14 @@ export default function AllRecipesPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-[15px] truncate mb-1">{recipe.title}</h3>
+                      <h3 className="font-semibold text-[15px] truncate mb-0.5">{recipe.title}</h3>
+                      {showAuthor && (recipe.authorUsername || recipe.isBase) && (
+                        <p className="text-[11px] text-muted-foreground mb-1" data-testid={`author-${recipe.id}`}>
+                          by @{recipe.isBase ? "Recipease" : recipe.authorUsername}
+                        </p>
+                      )}
                       {recipe.tags.length > 0 && (
-                        <div className="flex gap-1.5 mb-1.5 flex-wrap">
+                        <div className="flex gap-1.5 mb-1 flex-wrap">
                           {recipe.tags.slice(0, 3).map((tag) => (
                             <span key={tag} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/8 text-primary">
                               {tag}

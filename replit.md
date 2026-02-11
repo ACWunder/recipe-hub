@@ -46,12 +46,25 @@ A mobile-first recipe management web app with a premium, minimal design. Feature
 - Tables: users (username, passwordHash, displayName), recipes, follows (followerUserId, followingUserId, unique constraint)
 - Schema changes applied via direct SQL
 
+### Object Storage (Uploads)
+- `POST /api/uploads/request-url` - Get presigned upload URL (sends JSON metadata, NOT file)
+- `GET /objects/:path` - Serve uploaded files from Replit Object Storage
+- Uses two-step presigned URL flow: request URL with metadata, then upload file directly to GCS
+- Uploaded image paths stored as `/objects/uploads/<uuid>` in recipe.imageUrl
+
+## Object Storage
+- Replit Object Storage integration via `server/replit_integrations/object_storage/`
+- `use-upload.ts` hook handles presigned URL upload flow on frontend
+- Supports photo upload (file picker + camera capture) and URL input for recipe images
+- Image mode toggle (Photo vs URL) in Add Recipe form
+
 ## Design
 - Font: Plus Jakarta Sans (body), Playfair Display (headings)
 - Sage green primary color (HSL 152 40% 46%)
 - Mobile-first layout with iOS-style floating glassmorphic bottom tab bar
 - Add Recipe uses full-screen Dialog (not drawer) to prevent close-on-scroll, with sticky Save footer
 - Import from URL: fetches page, extracts JSON-LD/og:image, uses OpenAI to parse recipe
+- Image upload: Photo (file picker / camera) or URL input with toggle pills
 - Drawer-based modals for recipe detail, auth, people/following, and filter options
 - Spring physics animations via Framer Motion
 - Rounded-3xl drawers, rounded-2xl cards, pill-shaped filter chips

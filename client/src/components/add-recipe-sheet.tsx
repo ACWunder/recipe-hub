@@ -5,10 +5,13 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
-import { X, Link as LinkIcon, Loader2, Sparkles } from "lucide-react";
+import { X, Link as LinkIcon, Loader2, Sparkles, Camera, ImagePlus } from "lucide-react";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { useUpload } from "@/hooks/use-upload";
+
+type ImageMode = "upload" | "url";
 
 interface AddRecipeSheetProps {
   open: boolean;
@@ -24,7 +27,22 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
   const [steps, setSteps] = useState("");
   const [description, setDescription] = useState("");
   const [importUrl, setImportUrl] = useState("");
+  const [imageMode, setImageMode] = useState<ImageMode>("upload");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const { uploadFile, isUploading } = useUpload({
+    onSuccess: (response) => {
+      const servePath = response.objectPath;
+      setImageUrl(servePath);
+      toast({ title: "Photo uploaded!" });
+    },
+    onError: (err) => {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    },
+  });
 
   const resetForm = () => {
     setTitle("");
@@ -34,6 +52,8 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
     setSteps("");
     setDescription("");
     setImportUrl("");
+    setImagePreview(null);
+    setImageMode("upload");
   };
 
   useEffect(() => {
@@ -41,6 +61,21 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
       resetForm();
     }
   }, [open]);
+
+  const handleFileSelect = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Image must be under 10MB", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => setImagePreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+    await uploadFile(file);
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -84,7 +119,10 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
     onSuccess: (data: any) => {
       if (data.title) setTitle(data.title);
       if (data.description) setDescription(data.description);
-      if (data.imageUrl) setImageUrl(data.imageUrl);
+      if (data.imageUrl) {
+        setImageUrl(data.imageUrl);
+        setImageMode("url");
+      }
       if (data.tags && Array.isArray(data.tags)) setTags(data.tags.join(", "));
       if (data.ingredients && Array.isArray(data.ingredients)) setIngredients(data.ingredients.join("\n"));
       if (data.steps && Array.isArray(data.steps)) setSteps(data.steps.join("\n"));
@@ -98,7 +136,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
     },
   });
 
-  const canSubmit = title.trim().length > 0 && ingredients.trim().length > 0 && steps.trim().length > 0;
+  const canSubmit = title.trim().length > 0 && ingredients.trim().length > 0 && steps.trim().length > 0 && !isUploading;
   const canImport = importUrl.trim().length > 0 && !importMutation.isPending;
 
   return (
@@ -200,15 +238,101 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
               </div>
 
               <div>
-                <label htmlFor="imageUrl" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Image URL</label>
-                <Input
-                  id="imageUrl"
-                  placeholder="https://example.com/photo.jpg"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="rounded-xl bg-card border-0"
-                  data-testid="input-image-url"
-                />
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Recipe Image</label>
+                <div className="flex gap-1 mb-3">
+                  <button
+                    onClick={() => setImageMode("upload")}
+                    className={`text-xs font-medium px-3 py-1.5 rounded-full transition-all ${
+                      imageMode === "upload" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"
+                    }`}
+                    data-testid="toggle-image-upload"
+                  >
+                    Photo
+                  </button>
+                  <button
+                    onClick={() => setImageMode("url")}
+                    className={`text-xs font-medium px-3 py-1.5 rounded-full transition-all ${
+                      imageMode === "url" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"
+                    }`}
+                    data-testid="toggle-image-url"
+                  >
+                    URL
+                  </button>
+                </div>
+
+                {imageMode === "upload" ? (
+                  <div>
+                    {imagePreview ? (
+                      <div className="relative rounded-xl overflow-hidden mb-2 aspect-[4/3]">
+                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <Loader2 className="w-6 h-6 text-white animate-spin" />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => { setImagePreview(null); setImageUrl(""); }}
+                          className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-lg"
+                          data-testid="button-remove-photo"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-card p-4 text-sm text-muted-foreground"
+                          data-testid="button-choose-photo"
+                        >
+                          <ImagePlus className="w-5 h-5" />
+                          Choose Photo
+                        </button>
+                        <button
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-card p-4 text-sm text-muted-foreground"
+                          data-testid="button-take-photo"
+                        >
+                          <Camera className="w-5 h-5" />
+                          Take Photo
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileSelect(file);
+                        e.target.value = "";
+                      }}
+                      data-testid="input-file-photo"
+                    />
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileSelect(file);
+                        e.target.value = "";
+                      }}
+                      data-testid="input-camera-photo"
+                    />
+                  </div>
+                ) : (
+                  <Input
+                    placeholder="https://example.com/photo.jpg"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    className="rounded-xl bg-card border-0"
+                    data-testid="input-image-url"
+                  />
+                )}
               </div>
 
               <div>
