@@ -1,0 +1,55 @@
+Implement “Import recipe from URL” using Google’s Gemini API (free tier) and make it production-safe.
+
+Why this tool:
+- Use Gemini Developer API (Gemini Flash / Flash-Lite). It has a free tier for text input/output. :contentReference[oaicite:0]{index=0}
+
+Requirements
+1) UI/Flow
+- In “Add Recipe” modal: add a URL input + “Import” button.
+- On click: show loading state, then pre-fill the form fields (title, tags, ingredients, steps, imageUrl).
+- Do not close the modal on scroll or drag; modal closes ONLY on tapping X.
+
+2) Server endpoint
+- Create POST /api/import-recipe
+- Input: { url: string }
+- Server-side:
+  - Fetch the page HTML
+  - Extract:
+    - JSON-LD schema.org Recipe if present
+    - OpenGraph (og:title, og:image, og:description)
+    - Fallback: readable main text (strip scripts/styles, take main/article/body text)
+  - Build a compact “page summary” payload for the LLM (avoid sending full HTML if huge).
+
+3) Gemini integration
+- Add env var: GEMINI_API_KEY (no hardcoding).
+- Call Gemini Flash (or Flash-Lite) via the Gemini Developer API.
+- Prompt Gemini to output STRICT JSON only, matching exactly:
+
+{
+  "title": string,
+  "description": string | null,
+  "imageUrl": string | null,
+  "tags": string[],
+  "ingredients": string[],
+  "steps": string[]
+}
+
+Rules:
+- ingredients: one item per line, no numbering
+- steps: concise, ordered, one step per line
+- tags: 3–8 tags, lowercase, short
+- If imageUrl exists in JSON-LD or og:image, use it; otherwise null.
+- Return JSON only (no markdown, no extra text).
+
+4) Validation & safety
+- Validate the model JSON server-side (required title/ingredients/steps, arrays length > 0).
+- Sanitize strings, limit max lengths, handle fetch errors, blocked sites, and timeouts.
+- If Gemini fails: return a helpful error to the UI (do not silently fail).
+
+5) README
+- Add setup steps for GEMINI_API_KEY and how to get it.
+- Explain rate limits and that it uses Gemini free tier.
+
+Deliverables
+- Import from URL works end-to-end and reliably fills the form.
+- Modal save button is always clickable on iPhone, and the modal never closes on scroll.
