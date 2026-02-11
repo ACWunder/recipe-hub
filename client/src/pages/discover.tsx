@@ -114,7 +114,7 @@ export default function DiscoverPage() {
         </div>
       ) : (
         <>
-          <div className="flex-1 flex items-center justify-center px-4 pb-6 pt-0 relative">
+          <div className="flex-1 flex items-center justify-center px-4 pb-6 pt-0 relative -translate-y-3">
             <div className="relative w-full max-w-[350px] aspect-[3/4.45]">
               {remaining.slice(0, 3).reverse().map((recipe, reverseIdx) => {
                 const stackIdx = remaining.slice(0, 3).length - 1 - reverseIdx;
