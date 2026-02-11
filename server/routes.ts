@@ -303,7 +303,13 @@ No extra text, no markdown, no code fences. Just the JSON object.`;
       res.json(result);
     } catch (err: any) {
       console.error("Import recipe error:", err);
-      res.status(500).json({ message: "Failed to import recipe" });
+      if (err?.status === 429 || err?.code === "insufficient_quota") {
+        return res.status(402).json({ message: "OpenAI API quota exceeded. Please check your OpenAI billing at platform.openai.com and add credits." });
+      }
+      if (err?.status === 401) {
+        return res.status(401).json({ message: "OpenAI API key is invalid. Please update it in your secrets." });
+      }
+      res.status(500).json({ message: "Failed to import recipe. Please try again." });
     }
   });
 
