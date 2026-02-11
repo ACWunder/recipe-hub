@@ -4,12 +4,20 @@ import { useState, useCallback } from "react";
 import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { useRecipeDetail } from "@/components/recipe-detail-context";
 import RecipePlaceholder from "@/components/recipe-placeholder";
-import { Heart, X, Sparkles } from "lucide-react";
+import { Heart, X, Sparkles, User as UserIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/use-auth";
+import AuthSheet from "@/components/auth-sheet";
+
+type FilterScope = "all" | "mine" | "friends";
 
 export default function DiscoverPage() {
+  const { user } = useAuth();
+  const [scope, setScope] = useState<FilterScope>("all");
+  const [authOpen, setAuthOpen] = useState(false);
+
   const { data: recipes, isLoading } = useQuery<Recipe[]>({
-    queryKey: ["/api/recipes"],
+    queryKey: ["/api/recipes", `?scope=${scope}`],
   });
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -31,6 +39,16 @@ export default function DiscoverPage() {
     [recipes, currentIndex, openRecipe]
   );
 
+  const handleScopeChange = (s: FilterScope) => {
+    if ((s === "mine" || s === "friends") && !user) {
+      setAuthOpen(true);
+      return;
+    }
+    setScope(s);
+    setCurrentIndex(0);
+    setExitDirection(null);
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col h-full items-center justify-center px-8 gap-6">
@@ -45,83 +63,110 @@ export default function DiscoverPage() {
 
   const remaining = recipes ? recipes.slice(currentIndex) : [];
 
-  if (remaining.length === 0) {
-    return (
-      <div className="flex flex-col h-full items-center justify-center px-8 text-center">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 20 }}
-          className="w-20 h-20 rounded-3xl bg-primary/8 flex items-center justify-center mb-6"
-        >
-          <Sparkles className="w-9 h-9 text-primary" />
-        </motion.div>
-        <h2 className="font-serif text-2xl font-bold mb-2">All caught up!</h2>
-        <p className="text-muted-foreground text-sm max-w-[240px] leading-relaxed">
-          You've seen all available recipes. Check back later or add your own.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col h-full">
-      <header className="px-6 pt-6 pb-4">
-        <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-discover-title">Discover</h1>
-        <p className="text-muted-foreground text-sm mt-1">Swipe right to save, left to skip</p>
+      <header className="px-6 pt-6 pb-2">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+          <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-discover-title">Discover</h1>
+          <button
+            onClick={() => setAuthOpen(true)}
+            className="p-1.5 rounded-xl text-muted-foreground"
+            data-testid="button-account-discover"
+          >
+            <UserIcon className="w-5 h-5" />
+          </button>
+        </div>
+        <p className="text-muted-foreground text-sm mb-3">Swipe right to save, left to skip</p>
+        <div className="flex gap-2 pb-2">
+          {(["all", "mine", "friends"] as FilterScope[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => handleScopeChange(s)}
+              className={`text-xs font-medium px-3.5 py-1.5 rounded-full transition-all ${
+                scope === s ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"
+              }`}
+              data-testid={`filter-discover-${s}`}
+            >
+              {s === "all" ? "All" : s === "mine" ? "My recipes" : "Friends'"}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <div className="flex-1 flex items-center justify-center px-6 pb-2 relative">
-        <div className="relative w-full max-w-[300px] aspect-[3/4]">
-          {remaining.slice(0, 3).reverse().map((recipe, reverseIdx) => {
-            const stackIdx = remaining.slice(0, 3).length - 1 - reverseIdx;
-            if (stackIdx === 0) {
-              return (
-                <SwipeCard
-                  key={recipe.id}
-                  recipe={recipe}
-                  onSwipe={handleSwipe}
-                  exitDirection={exitDirection}
-                />
-              );
-            }
-            return (
-              <motion.div
-                key={recipe.id}
-                className="absolute inset-0 rounded-3xl overflow-hidden"
-                style={{
-                  scale: 1 - stackIdx * 0.05,
-                  y: stackIdx * 12,
-                  zIndex: 3 - stackIdx,
-                  filter: `brightness(${1 - stackIdx * 0.08})`,
-                }}
-              >
-                <CardContent recipe={recipe} />
-              </motion.div>
-            );
-          })}
+      {remaining.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="w-20 h-20 rounded-3xl bg-primary/8 flex items-center justify-center mb-6"
+          >
+            <Sparkles className="w-9 h-9 text-primary" />
+          </motion.div>
+          <h2 className="font-serif text-2xl font-bold mb-2">All caught up!</h2>
+          <p className="text-muted-foreground text-sm max-w-[240px] leading-relaxed">
+            {scope === "mine" ? "You haven't added any recipes yet." :
+             scope === "friends" ? "No recipes from friends yet." :
+             "You've seen all available recipes."}
+          </p>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex-1 flex items-center justify-center px-6 pb-2 relative">
+            <div className="relative w-full max-w-[300px] aspect-[3/4]">
+              {remaining.slice(0, 3).reverse().map((recipe, reverseIdx) => {
+                const stackIdx = remaining.slice(0, 3).length - 1 - reverseIdx;
+                if (stackIdx === 0) {
+                  return (
+                    <SwipeCard
+                      key={recipe.id}
+                      recipe={recipe}
+                      onSwipe={handleSwipe}
+                      exitDirection={exitDirection}
+                    />
+                  );
+                }
+                return (
+                  <motion.div
+                    key={recipe.id}
+                    className="absolute inset-0 rounded-3xl overflow-hidden"
+                    style={{
+                      scale: 1 - stackIdx * 0.05,
+                      y: stackIdx * 12,
+                      zIndex: 3 - stackIdx,
+                      filter: `brightness(${1 - stackIdx * 0.08})`,
+                    }}
+                  >
+                    <CardContent recipe={recipe} />
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
 
-      <div className="flex items-center justify-center gap-10 pb-24 pt-4">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => handleSwipe("left")}
-          className="w-14 h-14 rounded-2xl bg-card flex items-center justify-center text-muted-foreground shadow-sm"
-          style={{ border: '1px solid hsl(var(--border) / 0.5)' }}
-          data-testid="button-swipe-left"
-        >
-          <X className="w-6 h-6" />
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => handleSwipe("right")}
-          className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-md"
-          data-testid="button-swipe-right"
-        >
-          <Heart className="w-7 h-7" />
-        </motion.button>
-      </div>
+          <div className="flex items-center justify-center gap-10 pb-24 pt-4">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleSwipe("left")}
+              className="w-14 h-14 rounded-2xl bg-card flex items-center justify-center text-muted-foreground shadow-sm"
+              style={{ border: '1px solid hsl(var(--border) / 0.5)' }}
+              data-testid="button-swipe-left"
+            >
+              <X className="w-6 h-6" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleSwipe("right")}
+              className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-md"
+              data-testid="button-swipe-right"
+            >
+              <Heart className="w-7 h-7" />
+            </motion.button>
+          </div>
+        </>
+      )}
+
+      <AuthSheet open={authOpen} onOpenChange={setAuthOpen} />
     </div>
   );
 }

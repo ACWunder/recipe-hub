@@ -40,7 +40,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
           .split("\n")
           .map((l) => l.trim())
           .filter(Boolean),
-        createdByUserId: "demo",
+        createdByUserId: null,
       };
       await apiRequest("POST", "/api/recipes", body);
     },

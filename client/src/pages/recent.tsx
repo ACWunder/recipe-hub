@@ -1,10 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Recipe } from "@shared/schema";
+import { useState } from "react";
 import { useRecipeDetail } from "@/components/recipe-detail-context";
 import RecipePlaceholder from "@/components/recipe-placeholder";
-import { Clock } from "lucide-react";
+import { Clock, SlidersHorizontal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
+import { Drawer } from "vaul";
+import { useAuth } from "@/hooks/use-auth";
+import AuthSheet from "@/components/auth-sheet";
+
+type FilterScope = "all" | "mine" | "friends";
 
 function timeAgo(date: string | Date) {
   const now = new Date();
@@ -17,17 +23,46 @@ function timeAgo(date: string | Date) {
 }
 
 export default function RecentPage() {
+  const { user } = useAuth();
+  const [scope, setScope] = useState<FilterScope>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+
   const { data: recipes, isLoading } = useQuery<Recipe[]>({
-    queryKey: ["/api/recipes/recent"],
+    queryKey: ["/api/recipes/recent", `?scope=${scope}`],
   });
 
   const { openRecipe } = useRecipeDetail();
 
+  const handleScopeChange = (s: FilterScope) => {
+    if ((s === "mine" || s === "friends") && !user) {
+      setFilterOpen(false);
+      setAuthOpen(true);
+      return;
+    }
+    setScope(s);
+    setFilterOpen(false);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <header className="px-6 pt-6 pb-4">
-        <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-recent-title">Recent</h1>
-        <p className="text-muted-foreground text-sm mt-1">Freshly added recipes</p>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-recent-title">Recent</h1>
+            <p className="text-muted-foreground text-sm mt-1">Freshly added recipes</p>
+          </div>
+          <button
+            onClick={() => setFilterOpen(true)}
+            className="relative p-1.5 rounded-xl text-muted-foreground"
+            data-testid="button-recent-filter"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+            {scope !== "all" && (
+              <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-primary" />
+            )}
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 pb-24">
@@ -42,7 +77,11 @@ export default function RecentPage() {
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <Clock className="w-7 h-7 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground text-sm">No recent recipes yet</p>
+            <p className="text-muted-foreground text-sm">
+              {scope === "mine" ? "You haven't added any recipes yet" :
+               scope === "friends" ? "No recipes from friends yet" :
+               "No recent recipes yet"}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -89,6 +128,34 @@ export default function RecentPage() {
           </div>
         )}
       </div>
+
+      <Drawer.Root open={filterOpen} onOpenChange={setFilterOpen}>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
+          <Drawer.Content className="max-h-[50dvh] rounded-t-3xl outline-none bg-background fixed inset-x-0 bottom-0 z-50">
+            <div className="mx-auto w-10 h-1 flex-shrink-0 rounded-full bg-muted-foreground/20 mt-3 mb-3" />
+            <div className="px-6 pb-10">
+              <h3 className="font-serif text-xl font-bold mb-4">Filter recipes</h3>
+              <div className="space-y-2">
+                {(["all", "mine", "friends"] as FilterScope[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleScopeChange(s)}
+                    className={`w-full text-left p-3 rounded-2xl transition-all text-sm font-medium ${
+                      scope === s ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
+                    }`}
+                    data-testid={`filter-recent-${s}`}
+                  >
+                    {s === "all" ? "All recipes" : s === "mine" ? "My recipes" : "Friends' recipes"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
+
+      <AuthSheet open={authOpen} onOpenChange={setAuthOpen} />
     </div>
   );
 }

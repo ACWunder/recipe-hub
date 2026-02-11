@@ -6,13 +6,23 @@ import { Input } from "@/components/ui/input";
 import { useRecipeDetail } from "@/components/recipe-detail-context";
 import RecipePlaceholder from "@/components/recipe-placeholder";
 import AddRecipeSheet from "@/components/add-recipe-sheet";
-import { Plus, Search, BookOpen } from "lucide-react";
+import { Plus, Search, BookOpen, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/use-auth";
+import AuthSheet from "@/components/auth-sheet";
+import FriendsSheet from "@/components/friends-sheet";
+
+type FilterScope = "all" | "mine" | "friends";
 
 export default function AllRecipesPage() {
+  const { user } = useAuth();
+  const [scope, setScope] = useState<FilterScope>("all");
+  const [authOpen, setAuthOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
+
   const { data: recipes, isLoading } = useQuery<Recipe[]>({
-    queryKey: ["/api/recipes"],
+    queryKey: ["/api/recipes", `?scope=${scope}`],
   });
 
   const [search, setSearch] = useState("");
@@ -30,18 +40,56 @@ export default function AllRecipesPage() {
     return true;
   });
 
+  const handleScopeChange = (s: FilterScope) => {
+    if ((s === "mine" || s === "friends") && !user) {
+      setAuthOpen(true);
+      return;
+    }
+    setScope(s);
+  };
+
+  const handleAddRecipe = () => {
+    if (!user) {
+      setAuthOpen(true);
+      return;
+    }
+    setAddOpen(true);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <header className="px-6 pt-6 pb-2">
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
           <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-recipes-title">Recipes</h1>
-          <Button onClick={() => setAddOpen(true)} className="rounded-xl" data-testid="button-add-recipe">
-            <Plus className="w-4 h-4 mr-1.5" />
-            Add
-          </Button>
+          <div className="flex items-center gap-2">
+            {user && (
+              <Button size="icon" variant="ghost" className="rounded-xl" onClick={() => setFriendsOpen(true)} data-testid="button-friends">
+                <Users className="w-5 h-5" />
+              </Button>
+            )}
+            <Button onClick={handleAddRecipe} className="rounded-xl" data-testid="button-add-recipe">
+              <Plus className="w-4 h-4 mr-1.5" />
+              Add
+            </Button>
+          </div>
         </div>
 
-        <div className="relative mb-4">
+        <div className="flex gap-2 mb-3">
+          {(["all", "mine", "friends"] as FilterScope[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => handleScopeChange(s)}
+              className={`text-xs font-medium px-3.5 py-1.5 rounded-full transition-all ${
+                scope === s ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"
+              }`}
+              data-testid={`filter-recipes-${s}`}
+            >
+              {s === "all" ? "All" : s === "mine" ? "My recipes" : "Friends'"}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative mb-3">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
           <Input
             type="search"
@@ -102,7 +150,11 @@ export default function AllRecipesPage() {
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
               <BookOpen className="w-7 h-7 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground text-sm">No recipes found</p>
+            <p className="text-muted-foreground text-sm">
+              {scope === "mine" ? "You haven't added any recipes yet" :
+               scope === "friends" ? "No recipes from friends yet" :
+               "No recipes found"}
+            </p>
           </div>
         ) : (
           <AnimatePresence mode="popLayout">
@@ -158,6 +210,8 @@ export default function AllRecipesPage() {
       </div>
 
       <AddRecipeSheet open={addOpen} onOpenChange={setAddOpen} />
+      <AuthSheet open={authOpen} onOpenChange={setAuthOpen} />
+      <FriendsSheet open={friendsOpen} onOpenChange={setFriendsOpen} />
     </div>
   );
 }
