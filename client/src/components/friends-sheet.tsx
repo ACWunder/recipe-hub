@@ -80,9 +80,9 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
-        <Drawer.Content className="max-h-[94dvh] rounded-t-3xl outline-none bg-background fixed inset-x-0 bottom-0 z-50">
+        <Drawer.Content className="max-h-[94dvh] rounded-t-3xl outline-none bg-background fixed inset-x-0 bottom-0 z-50 flex flex-col">
           <div className="mx-auto w-10 h-1 flex-shrink-0 rounded-full bg-muted-foreground/20 mt-3 mb-3" />
-          <div className="px-6 pb-10">
+          <div className="px-6 pb-10 overflow-y-auto flex-1 min-h-0">
             <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
               <h2 className="font-serif text-2xl font-bold">Friends</h2>
               <button onClick={() => onOpenChange(false)} className="text-muted-foreground/60 p-1.5 rounded-xl" data-testid="button-close-friends">
@@ -106,7 +106,7 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
             </div>
 
             {tab === "friends" && (
-              <div className="space-y-2 max-h-[50dvh] overflow-y-auto">
+              <div className="space-y-2">
                 {friends.length === 0 ? (
                   <div className="flex flex-col items-center py-12 text-center">
                     <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-3">
@@ -132,7 +132,7 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
             )}
 
             {tab === "requests" && (
-              <div className="space-y-4 max-h-[50dvh] overflow-y-auto">
+              <div className="space-y-4">
                 {(requests?.incoming?.length || 0) > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Incoming</p>
@@ -197,7 +197,7 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
             )}
 
             {tab === "search" && (
-              <div className="space-y-3 max-h-[50dvh] overflow-y-auto">
+              <div className="space-y-3">
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
                   <Input
