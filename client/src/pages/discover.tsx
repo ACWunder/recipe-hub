@@ -114,8 +114,8 @@ export default function DiscoverPage() {
         </div>
       ) : (
         <>
-          <div className="flex-1 flex items-center justify-center px-4 pb-6 pt-1 relative">
-            <div className="relative w-full max-w-[350px] aspect-[3/4]">
+          <div className="flex-1 flex items-end justify-center px-4 pb-6 pt-1 relative">
+            <div className="relative w-full max-w-[350px] aspect-[3/4.25]">
               {remaining.slice(0, 3).reverse().map((recipe, reverseIdx) => {
                 const stackIdx = remaining.slice(0, 3).length - 1 - reverseIdx;
                 if (stackIdx === 0) {
@@ -149,15 +149,15 @@ export default function DiscoverPage() {
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => handleSwipe("left")}
-                  className="w-14 h-14 rounded-full bg-white/25 backdrop-blur-xl border border-white/45 flex items-center justify-center text-white shadow-[0_10px_30px_rgba(15,23,42,0.35)] pointer-events-auto"
+                  className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-xl border border-white/30 flex items-center justify-center text-white shadow-[0_10px_30px_rgba(15,23,42,0.35)] pointer-events-auto"
                   data-testid="button-swipe-left"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-7 h-7" />
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => handleSwipe("right")}
-                  className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-xl border border-white/55 flex items-center justify-center text-white shadow-[0_10px_30px_rgba(239,68,68,0.35)] pointer-events-auto"
+                  className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-xl border border-white/30 flex items-center justify-center text-white shadow-[0_10px_30px_rgba(239,68,68,0.35)] pointer-events-auto"
                   data-testid="button-swipe-right"
                 >
                   <Heart className="w-7 h-7" />
