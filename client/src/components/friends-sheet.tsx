@@ -6,31 +6,22 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { X, Search, UserPlus, Check, XIcon, Users, Loader2 } from "lucide-react";
+import { X, Search, UserPlus, UserMinus, Users, Loader2 } from "lucide-react";
 import type { SafeUser } from "@shared/schema";
 
-interface FriendsSheetProps {
+interface FollowingSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) {
+export default function FollowingSheet({ open, onOpenChange }: FollowingSheetProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [tab, setTab] = useState<"friends" | "requests" | "search">("friends");
+  const [tab, setTab] = useState<"following" | "search">("following");
 
-  const { data: friends = [] } = useQuery<SafeUser[]>({
-    queryKey: ["/api/friends"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
-    enabled: !!user,
-  });
-
-  const { data: requests } = useQuery<{
-    incoming: Array<{ id: string; requester: SafeUser }>;
-    outgoing: Array<{ id: string; addressee: SafeUser }>;
-  }>({
-    queryKey: ["/api/friends/requests"],
+  const { data: following = [] } = useQuery<SafeUser[]>({
+    queryKey: ["/api/following"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
   });
@@ -41,38 +32,37 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
     enabled: !!user && searchQuery.length >= 2,
   });
 
-  const sendRequestMutation = useMutation({
-    mutationFn: async (toUserId: string) => {
-      await apiRequest("POST", "/api/friends/request", { toUserId });
+  const followMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("POST", "/api/follow", { userId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/friends/requests"] });
-      toast({ title: "Friend request sent!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/following"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/search"] });
+      toast({ title: "Following!" });
     },
     onError: (err: Error) => {
       const msg = err.message?.includes(":") ? err.message.split(": ").slice(1).join(": ") : err.message;
-      toast({ title: "Couldn't send request", description: msg, variant: "destructive" });
+      toast({ title: "Couldn't follow", description: msg, variant: "destructive" });
     },
   });
 
-  const respondMutation = useMutation({
-    mutationFn: async ({ id, accept }: { id: string; accept: boolean }) => {
-      await apiRequest("POST", `/api/friends/requests/${id}/respond`, { accept });
+  const unfollowMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("POST", "/api/unfollow", { userId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/friends/requests"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/friends"] });
-      toast({ title: "Done!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/following"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/search"] });
+      toast({ title: "Unfollowed" });
     },
     onError: () => {
       toast({ title: "Something went wrong", variant: "destructive" });
     },
   });
 
-  const incomingCount = requests?.incoming?.length || 0;
   const tabs = [
-    { id: "friends" as const, label: "Friends" },
-    { id: "requests" as const, label: `Requests${incomingCount ? ` (${incomingCount})` : ""}` },
+    { id: "following" as const, label: "Following" },
     { id: "search" as const, label: "Search" },
   ];
 
@@ -84,8 +74,8 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
           <div className="mx-auto w-10 h-1 flex-shrink-0 rounded-full bg-muted-foreground/20 mt-3 mb-3" />
           <div className="px-6 pb-10 overflow-y-auto flex-1 min-h-0">
             <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-              <h2 className="font-serif text-2xl font-bold">Friends</h2>
-              <button onClick={() => onOpenChange(false)} className="text-muted-foreground/60 p-1.5 rounded-xl" data-testid="button-close-friends">
+              <h2 className="font-serif text-2xl font-bold">People</h2>
+              <button onClick={() => onOpenChange(false)} className="text-muted-foreground/60 p-1.5 rounded-xl" data-testid="button-close-following">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -98,26 +88,26 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
                   className={`text-xs font-medium px-3.5 py-1.5 rounded-full transition-all ${
                     tab === t.id ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"
                   }`}
-                  data-testid={`tab-friends-${t.id}`}
+                  data-testid={`tab-people-${t.id}`}
                 >
                   {t.label}
                 </button>
               ))}
             </div>
 
-            {tab === "friends" && (
+            {tab === "following" && (
               <div className="space-y-2">
-                {friends.length === 0 ? (
+                {following.length === 0 ? (
                   <div className="flex flex-col items-center py-12 text-center">
                     <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-3">
                       <Users className="w-6 h-6 text-muted-foreground" />
                     </div>
-                    <p className="text-muted-foreground text-sm">No friends yet</p>
-                    <p className="text-muted-foreground/60 text-xs mt-1">Search for users to add them</p>
+                    <p className="text-muted-foreground text-sm">Not following anyone yet</p>
+                    <p className="text-muted-foreground/60 text-xs mt-1">Search for users to follow them</p>
                   </div>
                 ) : (
-                  friends.map((f) => (
-                    <div key={f.id} className="flex items-center gap-3 p-3 rounded-2xl bg-card" data-testid={`friend-item-${f.id}`}>
+                  following.map((f) => (
+                    <div key={f.id} className="flex items-center gap-3 p-3 rounded-2xl bg-card" data-testid={`following-item-${f.id}`}>
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <span className="text-primary font-bold text-sm">{(f.displayName || f.username)[0].toUpperCase()}</span>
                       </div>
@@ -125,73 +115,17 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
                         <p className="font-semibold text-sm truncate">{f.displayName || f.username}</p>
                         <p className="text-xs text-muted-foreground">@{f.username}</p>
                       </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => unfollowMutation.mutate(f.id)}
+                        disabled={unfollowMutation.isPending}
+                        data-testid={`button-unfollow-${f.id}`}
+                      >
+                        <UserMinus className="w-4 h-4 text-muted-foreground" />
+                      </Button>
                     </div>
                   ))
-                )}
-              </div>
-            )}
-
-            {tab === "requests" && (
-              <div className="space-y-4">
-                {(requests?.incoming?.length || 0) > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Incoming</p>
-                    <div className="space-y-2">
-                      {requests!.incoming.map((req) => (
-                        <div key={req.id} className="flex items-center gap-3 p-3 rounded-2xl bg-card" data-testid={`request-incoming-${req.id}`}>
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <span className="text-primary font-bold text-sm">{(req.requester.displayName || req.requester.username)[0].toUpperCase()}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm truncate">{req.requester.displayName || req.requester.username}</p>
-                            <p className="text-xs text-muted-foreground">@{req.requester.username}</p>
-                          </div>
-                          <div className="flex gap-1.5">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => respondMutation.mutate({ id: req.id, accept: true })}
-                              data-testid={`button-accept-${req.id}`}
-                            >
-                              <Check className="w-4 h-4 text-primary" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => respondMutation.mutate({ id: req.id, accept: false })}
-                              data-testid={`button-reject-${req.id}`}
-                            >
-                              <XIcon className="w-4 h-4 text-muted-foreground" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {(requests?.outgoing?.length || 0) > 0 && (
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sent</p>
-                    <div className="space-y-2">
-                      {requests!.outgoing.map((req) => (
-                        <div key={req.id} className="flex items-center gap-3 p-3 rounded-2xl bg-card" data-testid={`request-outgoing-${req.id}`}>
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <span className="text-primary font-bold text-sm">{(req.addressee.displayName || req.addressee.username)[0].toUpperCase()}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm truncate">{req.addressee.displayName || req.addressee.username}</p>
-                            <p className="text-xs text-muted-foreground">@{req.addressee.username}</p>
-                          </div>
-                          <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">Pending</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {(!requests?.incoming?.length && !requests?.outgoing?.length) && (
-                  <div className="flex flex-col items-center py-12 text-center">
-                    <p className="text-muted-foreground text-sm">No pending requests</p>
-                  </div>
                 )}
               </div>
             )}
@@ -215,12 +149,10 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
                   </div>
                 )}
                 {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
-                  <p className="text-center text-muted-foreground text-sm py-4">No users found</p>
+                  <p className="text-center text-muted-foreground text-sm py-4" data-testid="text-no-users">No users found</p>
                 )}
                 {searchResults.map((u) => {
-                  const isFriend = friends.some(f => f.id === u.id);
-                  const isPending = requests?.outgoing?.some(r => r.addressee.id === u.id) || 
-                                    requests?.incoming?.some(r => r.requester.id === u.id);
+                  const isFollowed = following.some(f => f.id === u.id);
                   return (
                     <div key={u.id} className="flex items-center gap-3 p-3 rounded-2xl bg-card" data-testid={`search-user-${u.id}`}>
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -230,19 +162,27 @@ export default function FriendsSheet({ open, onOpenChange }: FriendsSheetProps) 
                         <p className="font-semibold text-sm truncate">{u.displayName || u.username}</p>
                         <p className="text-xs text-muted-foreground">@{u.username}</p>
                       </div>
-                      {isFriend ? (
-                        <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">Friends</span>
-                      ) : isPending ? (
-                        <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">Pending</span>
+                      {isFollowed ? (
+                        <Button
+                          variant="outline"
+                          className="rounded-full text-xs h-8 px-3"
+                          onClick={() => unfollowMutation.mutate(u.id)}
+                          disabled={unfollowMutation.isPending}
+                          data-testid={`button-unfollow-${u.id}`}
+                        >
+                          <UserMinus className="w-3.5 h-3.5 mr-1" />
+                          Unfollow
+                        </Button>
                       ) : (
                         <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => sendRequestMutation.mutate(u.id)}
-                          disabled={sendRequestMutation.isPending}
-                          data-testid={`button-add-friend-${u.id}`}
+                          variant="default"
+                          className="rounded-full text-xs h-8 px-3"
+                          onClick={() => followMutation.mutate(u.id)}
+                          disabled={followMutation.isPending}
+                          data-testid={`button-follow-${u.id}`}
                         >
-                          <UserPlus className="w-4 h-4" />
+                          <UserPlus className="w-3.5 h-3.5 mr-1" />
+                          Follow
                         </Button>
                       )}
                     </div>

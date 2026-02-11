@@ -11,15 +11,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import AuthSheet from "@/components/auth-sheet";
-import FriendsSheet from "@/components/friends-sheet";
+import FollowingSheet from "@/components/friends-sheet";
 
-type FilterScope = "all" | "mine" | "friends";
+type FilterScope = "all" | "mine" | "following";
 
 export default function AllRecipesPage() {
   const { user } = useAuth();
   const [scope, setScope] = useState<FilterScope>("all");
   const [authOpen, setAuthOpen] = useState(false);
-  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
 
   const { data: recipes, isLoading } = useQuery<Recipe[]>({
     queryKey: ["/api/recipes", `?scope=${scope}`],
@@ -41,7 +41,7 @@ export default function AllRecipesPage() {
   });
 
   const handleScopeChange = (s: FilterScope) => {
-    if ((s === "mine" || s === "friends") && !user) {
+    if ((s === "mine" || s === "following") && !user) {
       setAuthOpen(true);
       return;
     }
@@ -63,7 +63,7 @@ export default function AllRecipesPage() {
           <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-recipes-title">Recipes</h1>
           <div className="flex items-center gap-2">
             {user && (
-              <Button size="icon" variant="ghost" className="rounded-xl" onClick={() => setFriendsOpen(true)} data-testid="button-friends">
+              <Button size="icon" variant="ghost" className="rounded-xl" onClick={() => setFollowingOpen(true)} data-testid="button-following">
                 <Users className="w-5 h-5" />
               </Button>
             )}
@@ -75,7 +75,7 @@ export default function AllRecipesPage() {
         </div>
 
         <div className="flex gap-2 mb-3">
-          {(["all", "mine", "friends"] as FilterScope[]).map((s) => (
+          {(["all", "mine", "following"] as FilterScope[]).map((s) => (
             <button
               key={s}
               onClick={() => handleScopeChange(s)}
@@ -84,7 +84,7 @@ export default function AllRecipesPage() {
               }`}
               data-testid={`filter-recipes-${s}`}
             >
-              {s === "all" ? "All" : s === "mine" ? "My recipes" : "Friends'"}
+              {s === "all" ? "All" : s === "mine" ? "Mine" : "Following"}
             </button>
           ))}
         </div>
@@ -152,7 +152,7 @@ export default function AllRecipesPage() {
             </div>
             <p className="text-muted-foreground text-sm">
               {scope === "mine" ? "You haven't added any recipes yet" :
-               scope === "friends" ? "No recipes from friends yet" :
+               scope === "following" ? "No recipes from people you follow yet" :
                "No recipes found"}
             </p>
           </div>
@@ -211,7 +211,7 @@ export default function AllRecipesPage() {
 
       <AddRecipeSheet open={addOpen} onOpenChange={setAddOpen} />
       <AuthSheet open={authOpen} onOpenChange={setAuthOpen} />
-      <FriendsSheet open={friendsOpen} onOpenChange={setFriendsOpen} />
+      <FollowingSheet open={followingOpen} onOpenChange={setFollowingOpen} />
     </div>
   );
 }

@@ -70,12 +70,12 @@ export async function registerRoutes(
   app.get("/api/recipes", async (req, res) => {
     try {
       const scope = req.query.scope as string | undefined;
-      let friendIds: string[] = [];
+      let followingIds: string[] = [];
       const userId = req.user?.id;
-      if (scope === "friends" && userId) {
-        friendIds = await storage.getFriendIds(userId);
+      if (scope === "following" && userId) {
+        followingIds = await storage.getFollowingIds(userId);
       }
-      const allRecipes = await storage.getAllRecipes(scope, userId, friendIds);
+      const allRecipes = await storage.getAllRecipes(scope, userId, followingIds);
       res.json(allRecipes);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch recipes" });
@@ -85,12 +85,12 @@ export async function registerRoutes(
   app.get("/api/recipes/recent", async (req, res) => {
     try {
       const scope = req.query.scope as string | undefined;
-      let friendIds: string[] = [];
+      let followingIds: string[] = [];
       const userId = req.user?.id;
-      if (scope === "friends" && userId) {
-        friendIds = await storage.getFriendIds(userId);
+      if (scope === "following" && userId) {
+        followingIds = await storage.getFollowingIds(userId);
       }
-      const recentRecipes = await storage.getRecentRecipes(20, scope, userId, friendIds);
+      const recentRecipes = await storage.getRecentRecipes(20, scope, userId, followingIds);
       res.json(recentRecipes);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch recent recipes" });
@@ -131,54 +131,38 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/friends/request", requireAuth, async (req, res) => {
+  app.post("/api/follow", requireAuth, async (req, res) => {
     try {
-      const { toUserId } = req.body;
-      if (!toUserId) return res.status(400).json({ message: "toUserId required" });
-      if (toUserId === req.user!.id) return res.status(400).json({ message: "Cannot friend yourself" });
-      const existing = await storage.getFriendshipBetween(req.user!.id, toUserId);
-      if (existing) {
-        if (existing.status === "accepted") return res.status(400).json({ message: "Already friends" });
-        if (existing.status === "pending") return res.status(400).json({ message: "Request already pending" });
-        if (existing.status === "rejected") {
-          return res.status(400).json({ message: "Request was previously declined" });
-        }
-      }
-      const friendship = await storage.sendFriendRequest(req.user!.id, toUserId);
-      res.status(201).json(friendship);
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ message: "userId required" });
+      if (userId === req.user!.id) return res.status(400).json({ message: "Cannot follow yourself" });
+      const already = await storage.isFollowing(req.user!.id, userId);
+      if (already) return res.status(400).json({ message: "Already following" });
+      const follow = await storage.follow(req.user!.id, userId);
+      res.status(201).json(follow);
     } catch (err) {
-      res.status(500).json({ message: "Failed to send request" });
+      res.status(500).json({ message: "Failed to follow" });
     }
   });
 
-  app.get("/api/friends/requests", requireAuth, async (req, res) => {
+  app.post("/api/unfollow", requireAuth, async (req, res) => {
     try {
-      const incoming = await storage.getIncomingRequests(req.user!.id);
-      const outgoing = await storage.getOutgoingRequests(req.user!.id);
-      res.json({ incoming, outgoing });
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ message: "userId required" });
+      const removed = await storage.unfollow(req.user!.id, userId);
+      if (!removed) return res.status(404).json({ message: "Not following this user" });
+      res.json({ message: "Unfollowed" });
     } catch (err) {
-      res.status(500).json({ message: "Failed to fetch requests" });
+      res.status(500).json({ message: "Failed to unfollow" });
     }
   });
 
-  app.post("/api/friends/requests/:id/respond", requireAuth, async (req, res) => {
+  app.get("/api/following", requireAuth, async (req, res) => {
     try {
-      const { accept } = req.body;
-      if (typeof accept !== "boolean") return res.status(400).json({ message: "accept must be boolean" });
-      const result = await storage.respondToFriendRequest(req.params.id as string, req.user!.id, accept);
-      if (!result) return res.status(404).json({ message: "Request not found" });
-      res.json(result);
+      const following = await storage.getFollowing(req.user!.id);
+      res.json(following);
     } catch (err) {
-      res.status(500).json({ message: "Failed to respond to request" });
-    }
-  });
-
-  app.get("/api/friends", requireAuth, async (req, res) => {
-    try {
-      const friends = await storage.getFriends(req.user!.id);
-      res.json(friends);
-    } catch (err) {
-      res.status(500).json({ message: "Failed to fetch friends" });
+      res.status(500).json({ message: "Failed to fetch following" });
     }
   });
 

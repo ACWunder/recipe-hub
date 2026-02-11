@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Recipe, type InsertRecipe, type Friendship, type SafeUser, users, recipes, friendships } from "@shared/schema";
+import { type User, type InsertUser, type Recipe, type InsertRecipe, type Follow, type SafeUser, users, recipes, follows } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, ilike, and, or, inArray, ne } from "drizzle-orm";
+import { eq, desc, ilike, and, ne, inArray } from "drizzle-orm";
 
 function toSafeUser(user: User): SafeUser {
   const { passwordHash, ...safe } = user;
@@ -13,18 +13,16 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   searchUsers(query: string, excludeUserId: string): Promise<SafeUser[]>;
 
-  getAllRecipes(scope?: string, userId?: string, friendIds?: string[]): Promise<Recipe[]>;
-  getRecentRecipes(limit: number, scope?: string, userId?: string, friendIds?: string[]): Promise<Recipe[]>;
+  getAllRecipes(scope?: string, userId?: string, followingIds?: string[]): Promise<Recipe[]>;
+  getRecentRecipes(limit: number, scope?: string, userId?: string, followingIds?: string[]): Promise<Recipe[]>;
   getRecipeById(id: string): Promise<Recipe | undefined>;
   createRecipe(recipe: InsertRecipe): Promise<Recipe>;
 
-  sendFriendRequest(requesterId: string, addresseeId: string): Promise<Friendship>;
-  getIncomingRequests(userId: string): Promise<(Friendship & { requester: SafeUser })[]>;
-  getOutgoingRequests(userId: string): Promise<(Friendship & { addressee: SafeUser })[]>;
-  respondToFriendRequest(friendshipId: string, userId: string, accept: boolean): Promise<Friendship | undefined>;
-  getFriends(userId: string): Promise<SafeUser[]>;
-  getFriendIds(userId: string): Promise<string[]>;
-  getFriendshipBetween(userId1: string, userId2: string): Promise<Friendship | undefined>;
+  follow(followerUserId: string, followingUserId: string): Promise<Follow>;
+  unfollow(followerUserId: string, followingUserId: string): Promise<boolean>;
+  getFollowing(userId: string): Promise<SafeUser[]>;
+  getFollowingIds(userId: string): Promise<string[]>;
+  isFollowing(followerUserId: string, followingUserId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -50,24 +48,24 @@ export class DatabaseStorage implements IStorage {
     return results.map(toSafeUser);
   }
 
-  private applyScope(allRecipes: Recipe[], scope?: string, userId?: string, friendIds?: string[]): Recipe[] {
+  private applyScope(allRecipes: Recipe[], scope?: string, userId?: string, followingIds?: string[]): Recipe[] {
     if (!scope || scope === "all" || !userId) return allRecipes;
     if (scope === "mine") return allRecipes.filter(r => r.createdByUserId === userId);
-    if (scope === "friends") {
-      if (!friendIds || friendIds.length === 0) return [];
-      return allRecipes.filter(r => r.createdByUserId && friendIds.includes(r.createdByUserId));
+    if (scope === "following") {
+      if (!followingIds || followingIds.length === 0) return [];
+      return allRecipes.filter(r => r.createdByUserId && followingIds.includes(r.createdByUserId));
     }
     return allRecipes;
   }
 
-  async getAllRecipes(scope?: string, userId?: string, friendIds?: string[]): Promise<Recipe[]> {
+  async getAllRecipes(scope?: string, userId?: string, followingIds?: string[]): Promise<Recipe[]> {
     const all = await db.select().from(recipes).orderBy(desc(recipes.createdAt));
-    return this.applyScope(all, scope, userId, friendIds);
+    return this.applyScope(all, scope, userId, followingIds);
   }
 
-  async getRecentRecipes(limit = 20, scope?: string, userId?: string, friendIds?: string[]): Promise<Recipe[]> {
+  async getRecentRecipes(limit = 20, scope?: string, userId?: string, followingIds?: string[]): Promise<Recipe[]> {
     const all = await db.select().from(recipes).orderBy(desc(recipes.createdAt)).limit(100);
-    const filtered = this.applyScope(all, scope, userId, friendIds);
+    const filtered = this.applyScope(all, scope, userId, followingIds);
     return filtered.slice(0, limit);
   }
 
@@ -81,73 +79,37 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async sendFriendRequest(requesterId: string, addresseeId: string): Promise<Friendship> {
-    const [created] = await db.insert(friendships).values({ requesterId, addresseeId, status: "pending" }).returning();
+  async follow(followerUserId: string, followingUserId: string): Promise<Follow> {
+    const [created] = await db.insert(follows)
+      .values({ followerUserId, followingUserId })
+      .returning();
     return created;
   }
 
-  async getIncomingRequests(userId: string): Promise<(Friendship & { requester: SafeUser })[]> {
-    const rows = await db.select().from(friendships)
-      .where(and(eq(friendships.addresseeId, userId), eq(friendships.status, "pending")));
-    const result: (Friendship & { requester: SafeUser })[] = [];
-    for (const row of rows) {
-      const user = await this.getUser(row.requesterId);
-      if (user) result.push({ ...row, requester: toSafeUser(user) });
-    }
-    return result;
-  }
-
-  async getOutgoingRequests(userId: string): Promise<(Friendship & { addressee: SafeUser })[]> {
-    const rows = await db.select().from(friendships)
-      .where(and(eq(friendships.requesterId, userId), eq(friendships.status, "pending")));
-    const result: (Friendship & { addressee: SafeUser })[] = [];
-    for (const row of rows) {
-      const user = await this.getUser(row.addresseeId);
-      if (user) result.push({ ...row, addressee: toSafeUser(user) });
-    }
-    return result;
-  }
-
-  async respondToFriendRequest(friendshipId: string, userId: string, accept: boolean): Promise<Friendship | undefined> {
-    const [updated] = await db.update(friendships)
-      .set({ status: accept ? "accepted" : "rejected" })
-      .where(and(eq(friendships.id, friendshipId), eq(friendships.addresseeId, userId)))
+  async unfollow(followerUserId: string, followingUserId: string): Promise<boolean> {
+    const result = await db.delete(follows)
+      .where(and(eq(follows.followerUserId, followerUserId), eq(follows.followingUserId, followingUserId)))
       .returning();
-    return updated;
+    return result.length > 0;
   }
 
-  async getFriends(userId: string): Promise<SafeUser[]> {
-    const accepted = await db.select().from(friendships)
-      .where(and(
-        eq(friendships.status, "accepted"),
-        or(eq(friendships.requesterId, userId), eq(friendships.addresseeId, userId))
-      ));
-    const friendUserIds = accepted.map(f =>
-      f.requesterId === userId ? f.addresseeId : f.requesterId
-    );
-    if (friendUserIds.length === 0) return [];
-    const friendUsers = await db.select().from(users).where(inArray(users.id, friendUserIds));
-    return friendUsers.map(toSafeUser);
+  async getFollowing(userId: string): Promise<SafeUser[]> {
+    const rows = await db.select().from(follows).where(eq(follows.followerUserId, userId));
+    const followingUserIds = rows.map(r => r.followingUserId);
+    if (followingUserIds.length === 0) return [];
+    const followedUsers = await db.select().from(users).where(inArray(users.id, followingUserIds));
+    return followedUsers.map(toSafeUser);
   }
 
-  async getFriendIds(userId: string): Promise<string[]> {
-    const accepted = await db.select().from(friendships)
-      .where(and(
-        eq(friendships.status, "accepted"),
-        or(eq(friendships.requesterId, userId), eq(friendships.addresseeId, userId))
-      ));
-    return accepted.map(f =>
-      f.requesterId === userId ? f.addresseeId : f.requesterId
-    );
+  async getFollowingIds(userId: string): Promise<string[]> {
+    const rows = await db.select().from(follows).where(eq(follows.followerUserId, userId));
+    return rows.map(r => r.followingUserId);
   }
 
-  async getFriendshipBetween(userId1: string, userId2: string): Promise<Friendship | undefined> {
-    const [existing] = await db.select().from(friendships)
-      .where(or(
-        and(eq(friendships.requesterId, userId1), eq(friendships.addresseeId, userId2)),
-        and(eq(friendships.requesterId, userId2), eq(friendships.addresseeId, userId1))
-      ));
-    return existing;
+  async isFollowing(followerUserId: string, followingUserId: string): Promise<boolean> {
+    const [row] = await db.select().from(follows)
+      .where(and(eq(follows.followerUserId, followerUserId), eq(follows.followingUserId, followingUserId)));
+    return !!row;
   }
 }
 

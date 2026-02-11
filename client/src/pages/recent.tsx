@@ -10,7 +10,7 @@ import { Drawer } from "vaul";
 import { useAuth } from "@/hooks/use-auth";
 import AuthSheet from "@/components/auth-sheet";
 
-type FilterScope = "all" | "mine" | "friends";
+type FilterScope = "all" | "mine" | "following";
 
 function timeAgo(date: string | Date) {
   const now = new Date();
@@ -35,7 +35,7 @@ export default function RecentPage() {
   const { openRecipe } = useRecipeDetail();
 
   const handleScopeChange = (s: FilterScope) => {
-    if ((s === "mine" || s === "friends") && !user) {
+    if ((s === "mine" || s === "following") && !user) {
       setFilterOpen(false);
       setAuthOpen(true);
       return;
@@ -79,7 +79,7 @@ export default function RecentPage() {
             </div>
             <p className="text-muted-foreground text-sm">
               {scope === "mine" ? "You haven't added any recipes yet" :
-               scope === "friends" ? "No recipes from friends yet" :
+               scope === "following" ? "No recipes from people you follow yet" :
                "No recent recipes yet"}
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function RecentPage() {
             <div className="px-6 pb-10">
               <h3 className="font-serif text-xl font-bold mb-4">Filter recipes</h3>
               <div className="space-y-2">
-                {(["all", "mine", "friends"] as FilterScope[]).map((s) => (
+                {(["all", "mine", "following"] as FilterScope[]).map((s) => (
                   <button
                     key={s}
                     onClick={() => handleScopeChange(s)}
@@ -146,7 +146,7 @@ export default function RecentPage() {
                     }`}
                     data-testid={`filter-recent-${s}`}
                   >
-                    {s === "all" ? "All recipes" : s === "mine" ? "My recipes" : "Friends' recipes"}
+                    {s === "all" ? "All recipes" : s === "mine" ? "My recipes" : "Following"}
                   </button>
                 ))}
               </div>

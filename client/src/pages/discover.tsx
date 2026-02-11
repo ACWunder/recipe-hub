@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import AuthSheet from "@/components/auth-sheet";
 
-type FilterScope = "all" | "mine" | "friends";
+type FilterScope = "all" | "mine" | "following";
 
 export default function DiscoverPage() {
   const { user } = useAuth();
@@ -40,7 +40,7 @@ export default function DiscoverPage() {
   );
 
   const handleScopeChange = (s: FilterScope) => {
-    if ((s === "mine" || s === "friends") && !user) {
+    if ((s === "mine" || s === "following") && !user) {
       setAuthOpen(true);
       return;
     }
@@ -78,7 +78,7 @@ export default function DiscoverPage() {
         </div>
         <p className="text-muted-foreground text-sm mb-3">Swipe right to save, left to skip</p>
         <div className="flex gap-2 pb-2">
-          {(["all", "mine", "friends"] as FilterScope[]).map((s) => (
+          {(["all", "mine", "following"] as FilterScope[]).map((s) => (
             <button
               key={s}
               onClick={() => handleScopeChange(s)}
@@ -87,7 +87,7 @@ export default function DiscoverPage() {
               }`}
               data-testid={`filter-discover-${s}`}
             >
-              {s === "all" ? "All" : s === "mine" ? "My recipes" : "Friends'"}
+              {s === "all" ? "All" : s === "mine" ? "Mine" : "Following"}
             </button>
           ))}
         </div>
@@ -106,7 +106,7 @@ export default function DiscoverPage() {
           <h2 className="font-serif text-2xl font-bold mb-2">All caught up!</h2>
           <p className="text-muted-foreground text-sm max-w-[240px] leading-relaxed">
             {scope === "mine" ? "You haven't added any recipes yet." :
-             scope === "friends" ? "No recipes from friends yet." :
+             scope === "following" ? "No recipes from people you follow yet." :
              "You've seen all available recipes."}
           </p>
         </div>

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -22,17 +22,17 @@ export const recipes = pgTable("recipes", {
   createdByUserId: varchar("created_by_user_id", { length: 255 }),
 });
 
-export const friendships = pgTable("friendships", {
+export const follows = pgTable("follows", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
-  requesterId: varchar("requester_id", { length: 255 }).notNull(),
-  addresseeId: varchar("addressee_id", { length: 255 }).notNull(),
-  status: text("status").notNull().default("pending"),
+  followerUserId: varchar("follower_user_id", { length: 255 }).notNull(),
+  followingUserId: varchar("following_user_id", { length: 255 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  unique("follows_unique").on(table.followerUserId, table.followingUserId),
+]);
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertRecipeSchema = createInsertSchema(recipes).omit({ id: true, createdAt: true });
-export const insertFriendshipSchema = createInsertSchema(friendships).omit({ id: true, createdAt: true, status: true });
 
 export const signupSchema = z.object({
   username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
@@ -49,7 +49,6 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertRecipe = z.infer<typeof insertRecipeSchema>;
 export type Recipe = typeof recipes.$inferSelect;
-export type Friendship = typeof friendships.$inferSelect;
-export type InsertFriendship = z.infer<typeof insertFriendshipSchema>;
+export type Follow = typeof follows.$inferSelect;
 
 export type SafeUser = Omit<User, "passwordHash">;
