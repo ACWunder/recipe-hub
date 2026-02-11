@@ -1,0 +1,76 @@
+Build a mobile-first recipe management web app optimized for iPhone (responsive, touch-first, smooth animations). Make it look premium/minimal (clean typography, generous spacing, subtle shadows, soft rounded corners, smooth transitions). Prefer a modern stack that runs easily on Replit:
+
+Tech preferences:
+- Framework: Next.js (App Router) + TypeScript
+- Styling: Tailwind CSS
+- Animations: Framer Motion
+- Database: Prisma + SQLite (works on Replit without external setup)
+- Auth: “Sign in with Google” using NextAuth (Google OAuth). If Google OAuth env vars are missing, still run the app with a fallback “demo login” so I can test immediately; show clear instructions in README on how to enable Google login.
+
+Core data model:
+Recipe {
+  id, title, description (optional), imageUrl (optional),
+  tags: string[],
+  ingredients: string[] (one per line),
+  steps: string[] (ordered),
+  createdAt,
+  createdByUserId
+}
+User { id, name, email, image }
+
+App structure / UX:
+- The app has 3 main sections accessible via a bottom tab bar (iOS-style). Use beautiful icons and clear labels.
+  1) “Discover” (Tinder-style swipe)
+  2) “All Recipes”
+  3) “Recent”
+- Use smooth page transitions between tabs and components (Framer Motion).
+- All interactions must work well on touch (swipe gestures, taps, scroll).
+
+Section 1: Discover (Tinder-like)
+- Show a stack of recipe cards (title + image if available + 1–2 tags).
+- Swipe left = “skip”, swipe right = “like/open”.
+- On swipe right: play a nice animation and open a recipe detail view (modal or full-screen sheet) showing tags, ingredients, steps.
+- Implement swipe gesture (drag) with thresholds and spring animations. Keep it stable on mobile Safari.
+
+Section 2: All Recipes
+- Show all recipes in a list with search + tag filtering.
+- Each list item shows title, small image (if any), a few tags, and a short preview (e.g., first 1–2 ingredients).
+- Include a toggle at the top: “All recipes” vs “My recipes” (only those created by the logged-in user).
+- Include a prominent “+ Add Recipe” button.
+- Add Recipe form fields:
+  - title (required)
+  - image URL (optional)
+  - tags (comma-separated)
+  - ingredients (multiline; one per line)
+  - steps (multiline; one per line, ordered)
+- When submitted, save to DB and show a success toast + immediately appear in lists.
+
+Section 3: Recent
+- Show a grid or feed of recently added recipes (sorted by createdAt desc).
+- Each item must have an image thumbnail (if missing, generate a nice placeholder card with gradient + initials/title).
+- Tap opens the recipe detail view.
+
+Recipe detail view
+- Beautiful layout: title, tags as chips, ingredients checklist style, steps numbered.
+- Optional: “Copy ingredients” and “Copy steps” buttons.
+- Must feel like a native iOS sheet/modal (rounded top corners, smooth open/close).
+
+Seed data
+- On first run, seed 3 example recipes into the database with realistic tags/ingredients/steps and at least one with an imageUrl.
+
+Future feature placeholder (do NOT fully implement yet)
+- In the Add Recipe form, include a disabled/placeholder input labeled “Import from URL (coming soon)”.
+- Next to it, add a short note: “Later: paste a recipe URL and we’ll parse it using the ChatGPT API.”
+- Architect the code so adding an API route like /api/import-recipe would be easy later.
+
+Non-functional requirements
+- Must run immediately on Replit and be hosted so I can test (use Replit’s default run/dev command and web preview).
+- Provide a clear README with:
+  - how to run
+  - how to set up Google OAuth + NextAuth env vars on Replit (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NEXTAUTH_URL, NEXTAUTH_SECRET)
+  - how the database works (Prisma + SQLite) and how to migrate/seed
+- Keep code clean and organized (components, routes, lib/db, etc.).
+
+Deliverables
+- A complete working app with the 3-tab UI, database persistence, add recipe flow, swipe discover flow, and recent feed.
+- Make the design “aesthetic” and the transitions very smooth.
