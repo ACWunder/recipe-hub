@@ -56,7 +56,7 @@ export default function DiscoverPage() {
           <Skeleton className="h-8 w-48 mx-auto mb-3 rounded-xl" />
           <Skeleton className="h-4 w-56 mx-auto rounded-lg" />
         </div>
-        <Skeleton className="w-full max-w-[420px] aspect-[2/3] rounded-3xl" />
+        <Skeleton className="w-full max-w-[300px] aspect-[3/4] rounded-3xl" />
       </div>
     );
   }
@@ -114,9 +114,8 @@ export default function DiscoverPage() {
         </div>
       ) : (
         <>
-          <div className="flex-1 flex items-center justify-center px-6 pb-8 relative">
-            {/* Vergrößerter Container: max-w-[420px] und aspect-[2/3] */}
-            <div className="relative w-full max-w-[420px] aspect-[2/3]">
+          <div className="flex-1 flex items-center justify-center px-6 pb-2 relative">
+            <div className="relative w-full max-w-[300px] aspect-[3/4]">
               {remaining.slice(0, 3).reverse().map((recipe, reverseIdx) => {
                 const stackIdx = remaining.slice(0, 3).length - 1 - reverseIdx;
                 if (stackIdx === 0) {
@@ -145,27 +144,27 @@ export default function DiscoverPage() {
                   </motion.div>
                 );
               })}
-
-              {/* Buttons direkt auf dem Karten-Stack positioniert */}
-              <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-12 z-50">
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleSwipe("left")}
-                  className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-xl border border-white/30"
-                  data-testid="button-swipe-left"
-                >
-                  <X className="w-8 h-8" />
-                </motion.button>
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleSwipe("right")}
-                  className="w-18 h-18 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-2xl"
-                  data-testid="button-swipe-right"
-                >
-                  <Heart className="w-9 h-9" />
-                </motion.button>
-              </div>
             </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-10 pb-24 pt-4">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleSwipe("left")}
+              className="w-14 h-14 rounded-2xl bg-card flex items-center justify-center text-muted-foreground shadow-sm"
+              style={{ border: '1px solid hsl(var(--border) / 0.5)' }}
+              data-testid="button-swipe-left"
+            >
+              <X className="w-6 h-6" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleSwipe("right")}
+              className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-md"
+              data-testid="button-swipe-right"
+            >
+              <Heart className="w-7 h-7" />
+            </motion.button>
           </div>
         </>
       )}
