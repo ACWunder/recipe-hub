@@ -33,6 +33,7 @@ A mobile-first recipe management web app with a premium, minimal design. Feature
 - `GET /api/recipes/recent?scope=all|mine|following` - Recent recipes (limit 20)
 - `GET /api/recipes/:id` - Single recipe
 - `POST /api/recipes` - Create recipe (requires auth, sets createdByUserId from session)
+- `POST /api/import-recipe` - Import recipe from URL via OpenAI (requires auth, OPENAI_API_KEY env)
 
 ### Social (Follow)
 - `GET /api/users/search?q=query` - Search users by username (requires auth)
@@ -49,6 +50,8 @@ A mobile-first recipe management web app with a premium, minimal design. Feature
 - Font: Plus Jakarta Sans (body), Playfair Display (headings)
 - Sage green primary color (HSL 152 40% 46%)
 - Mobile-first layout with iOS-style floating glassmorphic bottom tab bar
-- Drawer-based modals for recipe detail, add recipe, auth, people/following, and filter options
+- Add Recipe uses full-screen Dialog (not drawer) to prevent close-on-scroll, with sticky Save footer
+- Import from URL: fetches page, extracts JSON-LD/og:image, uses OpenAI to parse recipe
+- Drawer-based modals for recipe detail, auth, people/following, and filter options
 - Spring physics animations via Framer Motion
 - Rounded-3xl drawers, rounded-2xl cards, pill-shaped filter chips
