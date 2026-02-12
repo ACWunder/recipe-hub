@@ -114,7 +114,7 @@ export default function RecentPage() {
                   </h3>
                   {showAuthor && (recipe.authorUsername || recipe.isBase) && (
                     <p className="text-white/60 text-[10px] mb-1" data-testid={`author-${recipe.id}`}>
-                      by @{recipe.isBase ? "Recipify" : recipe.authorUsername}
+                      by @{recipe.isBase ? "arthur" : recipe.authorUsername}
                     </p>
                   )}
                   <div className="flex items-center gap-1.5">
