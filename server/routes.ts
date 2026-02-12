@@ -132,7 +132,7 @@ export async function registerRoutes(
       const id = req.params.id as string;
       const recipe = await storage.getRecipeById(id);
       if (!recipe) return res.status(404).json({ message: "Recipe not found" });
-      const canManageRecipe = recipe.createdByUserId === req.user!.id || (recipe.isBase && req.user!.isAdmin);
+      const canManageRecipe = recipe.createdByUserId === req.user!.id || (recipe.isBase && isAdminUser(req.user));
       if (!canManageRecipe) {
         return res.status(403).json({ message: "You can only edit your own recipes" });
       }
@@ -155,7 +155,7 @@ export async function registerRoutes(
       const id = req.params.id as string;
       const recipe = await storage.getRecipeById(id);
       if (!recipe) return res.status(404).json({ message: "Recipe not found" });
-      const canManageRecipe = recipe.createdByUserId === req.user!.id || (recipe.isBase && req.user!.isAdmin);
+      const canManageRecipe = recipe.createdByUserId === req.user!.id || (recipe.isBase && isAdminUser(req.user));
       if (!canManageRecipe) {
         return res.status(403).json({ message: "You can only delete your own recipes" });
       }

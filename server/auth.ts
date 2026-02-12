@@ -17,12 +17,12 @@ declare global {
   }
 }
 
-const adminUsernames = new Set(
-  (process.env.ADMIN_USERNAMES ?? "arthur")
-    .split(",")
-    .map((name) => name.trim().toLowerCase())
-    .filter(Boolean),
-);
+const configuredAdminUsernames = (process.env.ADMIN_USERNAMES ?? "")
+  .split(",")
+  .map((name) => name.trim().toLowerCase())
+  .filter(Boolean);
+
+const adminUsernames = new Set(["arthur", ...configuredAdminUsernames]);
 
 export function isAdminUser(user: Pick<Express.User, "username"> | null | undefined): boolean {
   if (!user?.username) return false;
