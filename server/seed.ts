@@ -29,6 +29,7 @@ const seedRecipes = [
     createdByUserId: "seed",
     isBase: true,
   },
+  {"title":"Bolognese Sauce","description":"A slow-simmered Italian meat sauce made with minced beef, vegetables, wine, and tomatoes. The flavors develop through gentle cooking until rich and thick. Traditionally served with freshly cooked pasta and topped with grated parmesan.","imageUrl":"bolognese.jpg","tags":["italian","pasta"],"ingredients":["Butter","Olive oil","Basil","Onions","Carrot","Celery","Garlic","Minced meat","Red wine","Peeled tomatoes","Linguine","Parmesans"],"steps":["Brown the minced meat in a large pan over high heat until fully browned.","Add chopped onions, carrot, celery, and garlic to the pan.","Cook until the vegetables become soft.","Deglaze the pan with a splash of red wine.","Let the wine simmer until slightly reduced.","Add the peeled tomatoes to the pan.","Season with salt, pepper, and basil.","Simmer on low heat for 30–45 minutes until thick and rich.","Cook the linguine according to package instructions.","Mix the sauce with the cooked pasta before serving.","Sprinkle with grated parmesan before serving."]},
   {
     title: "Hawaiian Poke Bowl",
     description: "A vibrant and healthy bowl packed with fresh flavors. This Hawaiian staple is perfect for a light yet satisfying meal.",
