@@ -230,7 +230,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
                 <label htmlFor="title" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Title *</label>
                 <Input
                   id="title"
-                  placeholder="e.g. Classic Margherita Pizza"
+                  placeholder="e.g. Pasta Carbonara"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="rounded-xl bg-card border-0"
@@ -352,7 +352,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
                 <label htmlFor="tags" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Tags</label>
                 <Input
                   id="tags"
-                  placeholder="Italian, Pasta, Quick (comma-separated)"
+                  placeholder="Italian, Pasta (comma-separated)"
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
                   className="rounded-xl bg-card border-0"
@@ -377,7 +377,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
                 <label htmlFor="steps" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Steps *</label>
                 <Textarea
                   id="steps"
-                  placeholder={"One step per line\ne.g.\nPreheat oven to 375F\nMix dry ingredients"}
+                  placeholder={"One step per line\ne.g.\nPreheat oven to 180C\nMix dry ingredients"}
                   value={steps}
                   onChange={(e) => setSteps(e.target.value)}
                   rows={5}
