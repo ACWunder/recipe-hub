@@ -64,6 +64,10 @@ app.use((req, res, next) => {
   const { setupAuth } = await import("./auth");
   setupAuth(app);
 
+  const { ensureRecipeVisibilityColumn } = await import("./db");
+  await ensureRecipeVisibilityColumn();
+
+
   const { seedDatabase } = await import("./seed");
   await seedDatabase();
   await registerRoutes(httpServer, app);

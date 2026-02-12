@@ -8,3 +8,11 @@ if (!process.env.DATABASE_URL) {
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle(pool, { schema });
+
+
+export async function ensureRecipeVisibilityColumn() {
+  await pool.query(`
+    ALTER TABLE recipes
+    ADD COLUMN IF NOT EXISTS is_hidden boolean NOT NULL DEFAULT false
+  `);
+}
