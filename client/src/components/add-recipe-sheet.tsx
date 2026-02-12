@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
-import { X, Link as LinkIcon, Loader2, Sparkles, Camera, ImagePlus } from "lucide-react";
+import { X, Link as LinkIcon, Loader2, Sparkles, Camera, ImagePlus, Lock, LockOpen } from "lucide-react";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -29,6 +29,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
   const [importUrl, setImportUrl] = useState("");
   const [imageMode, setImageMode] = useState<ImageMode>("upload");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isHidden, setIsHidden] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +55,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
     setImportUrl("");
     setImagePreview(null);
     setImageMode("upload");
+    setIsHidden(false);
   };
 
   useEffect(() => {
@@ -83,6 +85,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
         title: title.trim(),
         description: description.trim() || null,
         imageUrl: imageUrl.trim() || null,
+        isHidden,
         tags: tags
           .split(",")
           .map((t) => t.trim())
@@ -156,13 +159,23 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
 
           <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-3 flex-shrink-0 border-b border-border/40">
             <h2 className="font-serif text-2xl font-bold" data-testid="text-add-recipe-title">New Recipe</h2>
-            <button
-              onClick={() => onOpenChange(false)}
-              className="text-muted-foreground/60 p-1.5 rounded-xl"
-              data-testid="button-close-add"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setIsHidden((prev) => !prev)}
+                className="text-muted-foreground/80 p-1.5 rounded-xl"
+                data-testid="button-toggle-hidden-add"
+                title={isHidden ? "Recipe is hidden" : "Recipe is visible"}
+              >
+                {isHidden ? <Lock className="w-5 h-5" /> : <LockOpen className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => onOpenChange(false)}
+                className="text-muted-foreground/60 p-1.5 rounded-xl"
+                data-testid="button-close-add"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-5">

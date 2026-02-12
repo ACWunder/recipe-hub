@@ -50,7 +50,7 @@ export class DatabaseStorage implements IStorage {
     return results.map(toSafeUser);
   }
 
-  private async fetchRecipesWithAuthor(): Promise<RecipeWithAuthor[]> {
+  private async fetchRecipesWithAuthor(viewerUserId?: string): Promise<RecipeWithAuthor[]> {
     const rows = await db
       .select({
         recipe: recipes,
@@ -63,7 +63,7 @@ export class DatabaseStorage implements IStorage {
     return rows.map(r => ({
       ...r.recipe,
       authorUsername: r.authorUsername || null,
-    }));
+    })).filter((recipe) => !recipe.isHidden || recipe.createdByUserId === viewerUserId);
   }
 
   private applyScope(allRecipes: RecipeWithAuthor[], scope?: string, userId?: string, followingIds?: string[]): RecipeWithAuthor[] {
@@ -79,12 +79,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllRecipes(scope?: string, userId?: string, followingIds?: string[]): Promise<RecipeWithAuthor[]> {
-    const all = await this.fetchRecipesWithAuthor();
+    const all = await this.fetchRecipesWithAuthor(userId);
     return this.applyScope(all, scope, userId, followingIds);
   }
 
   async getRecentRecipes(limit = 20, scope?: string, userId?: string, followingIds?: string[]): Promise<RecipeWithAuthor[]> {
-    const all = await this.fetchRecipesWithAuthor();
+    const all = await this.fetchRecipesWithAuthor(userId);
     const filtered = this.applyScope(all, scope, userId, followingIds);
     return filtered.slice(0, limit);
   }

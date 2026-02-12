@@ -1,7 +1,7 @@
 import type { RecipeWithAuthor } from "@shared/schema";
 import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, X, Trash2, Pencil, Save } from "lucide-react";
+import { Copy, Check, X, Trash2, Pencil, Save, Lock, LockOpen } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import RecipePlaceholder from "@/components/recipe-placeholder";
@@ -40,6 +40,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
   const [tagsText, setTagsText] = useState("");
   const [ingredientsText, setIngredientsText] = useState("");
   const [stepsText, setStepsText] = useState("");
+  const [isHidden, setIsHidden] = useState(false);
 
   const resetEditForm = (currentRecipe: RecipeWithAuthor) => {
     setTitle(currentRecipe.title ?? "");
@@ -48,6 +49,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
     setTagsText(Array.isArray(currentRecipe.tags) ? currentRecipe.tags.join(", ") : "");
     setIngredientsText(Array.isArray(currentRecipe.ingredients) ? currentRecipe.ingredients.join("\n") : "");
     setStepsText(Array.isArray(currentRecipe.steps) ? currentRecipe.steps.join("\n") : "");
+    setIsHidden(!!currentRecipe.isHidden);
   };
 
   useEffect(() => {
@@ -79,6 +81,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
         title: title.trim(),
         description: description.trim() || null,
         imageUrl: imageUrl.trim() || null,
+        isHidden,
         tags: tagsText
           .split(",")
           .map((t) => t.trim())
@@ -102,6 +105,21 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
     },
     onError: (err: Error) => {
       toast({ title: "Failed to update", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const toggleHiddenMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("PATCH", `/api/recipes/${id}`, { isHidden: !isHidden });
+    },
+    onSuccess: () => {
+      setIsHidden((prev) => !prev);
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes/recent"] });
+      toast({ title: !isHidden ? "Recipe hidden" : "Recipe visible" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to change visibility", description: err.message, variant: "destructive" });
     },
   });
 
@@ -164,6 +182,17 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                   </h2>
                 )}
                 <div className="flex items-center gap-1 mt-1">
+                  {isOwner && !isEditing && (
+                    <button
+                      onClick={() => toggleHiddenMutation.mutate(recipe.id)}
+                      className="text-muted-foreground/80 p-1.5 rounded-xl"
+                      data-testid="button-toggle-hidden-recipe"
+                      disabled={toggleHiddenMutation.isPending}
+                      title={isHidden ? "Recipe is hidden" : "Recipe is visible"}
+                    >
+                      {isHidden ? <Lock className="w-5 h-5" /> : <LockOpen className="w-5 h-5" />}
+                    </button>
+                  )}
                   {isOwner && !isEditing && (
                     <button
                       onClick={() => setIsEditing(true)}

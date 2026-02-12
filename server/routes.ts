@@ -105,6 +105,9 @@ export async function registerRoutes(
     try {
       const recipe = await storage.getRecipeById(req.params.id);
       if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+      if (recipe.isHidden && recipe.createdByUserId !== req.user?.id) {
+        return res.status(404).json({ message: "Recipe not found" });
+      }
       res.json(recipe);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch recipe" });
@@ -360,7 +363,7 @@ export async function registerRoutes(
 
                 TAGS RULES:
                 Use ONLY from this allowed lowercase list:
-                ["asian","italian","seafood","vegetarian","vegan","breakfast","baked-goods","healthy","high-protein","indian","chinese","vietnamese","thai","german","oven-baked","rice","pasta","salad","spicy","snack","soup","sweet"]
+                ["asian","italian","seafood","vegetarian","vegan","breakfast","baked-goods","healthy","high-protein","indian","chinese","vietnamese","thai","german","oven-baked","rice","pasta","salad","spicy","snack","soup","sweet", "try"]
 
                 Choose relevant tags only.
                 Example: Lasagna → ["italian","pasta","oven-baked"]

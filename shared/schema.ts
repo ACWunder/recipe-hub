@@ -20,6 +20,7 @@ export const recipes = pgTable("recipes", {
   steps: text("steps").array().notNull().default(sql`'{}'::text[]`),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   createdByUserId: varchar("created_by_user_id", { length: 255 }),
+  isHidden: boolean("is_hidden").notNull().default(false),
   isBase: boolean("is_base").notNull().default(false),
 });
 
@@ -38,6 +39,7 @@ export const updateRecipeSchema = insertRecipeSchema.pick({
   title: true,
   description: true,
   imageUrl: true,
+  isHidden: true,
   tags: true,
   ingredients: true,
   steps: true,
