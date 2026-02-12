@@ -30,9 +30,9 @@ const seedRecipes = [
     isBase: true,
   },
   {
-  title: "Bolognese Sauce",
+  title: "Bolognese",
   description: "A slow-simmered Italian meat sauce made with minced meat, vegetables, wine, and tomatoes. The flavors develop through gentle cooking until rich and thick. Serve with pasta and finish with grated parmesan.",
-  imageUrl: "bolognese.jpg",
+  imageUrl: "/images/bolognese.jpg",
   tags: ["italian", "pasta"],
   ingredients: [
     "Butter",
