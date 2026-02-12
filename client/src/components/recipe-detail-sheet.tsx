@@ -198,7 +198,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
 
               {(recipe.authorUsername || recipe.isBase) && (
                 <p className="text-sm text-muted-foreground mb-4" data-testid="text-recipe-author">
-                  by @{recipe.isBase ? "Recipease" : recipe.authorUsername}
+                  by @{recipe.isBase ? "Recipify" : recipe.authorUsername}
                 </p>
               )}
 

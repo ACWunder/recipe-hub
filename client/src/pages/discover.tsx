@@ -288,7 +288,7 @@ function CardContent({ recipe, showAuthor }: { recipe: RecipeWithAuthor; showAut
         )}
         {showAuthor && recipe.isBase && (
           <p className="text-white/60 text-xs mb-2" data-testid={`author-${recipe.id}`}>
-            by Recipease
+            by Recipify
           </p>
         )}
         {recipe.description && (

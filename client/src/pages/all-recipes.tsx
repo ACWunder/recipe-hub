@@ -191,7 +191,7 @@ export default function AllRecipesPage() {
                       <h3 className="font-semibold text-[15px] truncate mb-0.5">{recipe.title}</h3>
                       {showAuthor && (recipe.authorUsername || recipe.isBase) && (
                         <p className="text-[11px] text-muted-foreground mb-1" data-testid={`author-${recipe.id}`}>
-                          by @{recipe.isBase ? "Recipease" : recipe.authorUsername}
+                          by @{recipe.isBase ? "Recipify" : recipe.authorUsername}
                         </p>
                       )}
                       {recipe.tags.length > 0 && (
