@@ -312,11 +312,11 @@ export async function registerRoutes(
             content: `You extract recipe data from web page content. Return ONLY valid JSON with this exact schema:
 {"title":"string","description":"string or null","imageUrl":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}
 Rules:
-- Title: short neutral dish name only, max 3 words (example: "Lasagna"). Remove words like recipe/rezept/how to, brand or site names, and marketing adjectives such as "original", "best", "ultimate", "authentic", "perfect", "easy".
-- Description: always provide a short helpful description (1 sentence, max 140 chars) describing the dish.
+- Title: capitalized, short neutral dish name only, max 3 words (example: "Lasagna"). Remove words like recipe/rezept/how to, brand or site names, and marketing adjectives such as "original", "best", "ultimate", "authentic", "perfect", "easy".
+- Description: always provide a short helpful description (3 sentences, max 400 chars) describing the dish.
 - Ingredients: one item per entry, no numbering, concise ingredient names. Remove marketing phrases and filler adjectives (e.g. output "potatoes", not "the best potatoes"). Normalize quantities for exactly 2 servings (2 people).
 - Steps: concise, practical, ordered, one action per entry. Keep each step short.
-- Tags: use ONLY from this allowed lowercase list (English): ["asian","italian","seafood","vegetarian","vegan","breakfast","baked-goods","healthy","high-protein","indian","chinese","vietnamese","thai","german","oven-baked","rice","pasta","salad","spicy","snack","soup","sweet"]. Do not output any other tags.
+- Tags: use ONLY from this allowed lowercase list (English): ["asian","italian","seafood","vegetarian","vegan","breakfast","baked-goods","healthy","high-protein","indian","chinese","vietnamese","thai","german","oven-baked","rice","pasta","salad","spicy","snack","soup","sweet"]. Do not output any other tags. (but for example lasagna is pasta and italian)
 - imageUrl: null unless found in content.
 No extra text, no markdown, no code fences. Output only the JSON object.`,
           },
