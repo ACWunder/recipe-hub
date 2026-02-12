@@ -327,13 +327,24 @@ export async function registerRoutes(
                 - One ingredient per array entry.
                 - No numbering in ingredients.
                 - Remove marketing phrases like "the best", "authentic", "ultimate", "perfect".
+                - ALL textual fields (title, description, ingredients, steps) MUST be in English.
+                - If any field is not in English, translate it.
+
 
                 TITLE RULES:
-                - English Language!
-                - Short neutral dish name.
-                - Maximum 3 words.
+                - The title MUST be fully translated into natural English.
+                - The title MUST NOT remain in the original language.
+                - If the source title is German or another language, translate it.
+                - Do NOT reuse the original wording unless it is already English.
+                - Keep it short, neutral, maximum 3 words.
                 - Remove words like "recipe", "Rezept", "how to", brand names.
-                - Example: "Lasagna"
+                - Remove marketing adjectives like "original", "best", "authentic", "ultimate", "perfect".
+                - Use common English dish naming conventions.
+                Examples:
+                - "Apfelkuchen" → "Apple Cake"
+                - "Klassische Linsensuppe" → "Lentil Soup"
+                - "Omas Kartoffelsalat" → "Potato Salad"
+
 
                 DESCRIPTION RULES:
                 - Always generate a short helpful description.
