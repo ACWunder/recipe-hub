@@ -13,6 +13,33 @@ import { useUpload } from "@/hooks/use-upload";
 
 type ImageMode = "upload" | "url";
 
+const AVAILABLE_TAGS = [
+  "asian",
+  "italian",
+  "seafood",
+  "vegetarian",
+  "vegan",
+  "breakfast",
+  "baked-goods",
+  "healthy",
+  "high-protein",
+  "indian",
+  "chinese",
+  "vietnamese",
+  "thai",
+  "german",
+  "oven-baked",
+  "rice",
+  "pasta",
+  "salad",
+  "spicy",
+  "snack",
+  "soup",
+  "sweet",
+  "try",
+] as const;
+
+
 interface AddRecipeSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -22,7 +49,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
   const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [tags, setTags] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [ingredients, setIngredients] = useState("");
   const [steps, setSteps] = useState("");
   const [description, setDescription] = useState("");
@@ -48,7 +75,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
   const resetForm = () => {
     setTitle("");
     setImageUrl("");
-    setTags("");
+    setSelectedTags([]);
     setIngredients("");
     setSteps("");
     setDescription("");
@@ -86,10 +113,7 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
         description: description.trim() || null,
         imageUrl: imageUrl.trim() || null,
         isHidden,
-        tags: tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
+        tags: selectedTags,
         ingredients: ingredients
           .split("\n")
           .map((l) => l.trim())
@@ -126,7 +150,12 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
         setImageUrl(data.imageUrl);
         setImageMode("url");
       }
-      if (data.tags && Array.isArray(data.tags)) setTags(data.tags.join(", "));
+      if (data.tags && Array.isArray(data.tags)) {
+        const importedTags = data.tags
+          .map((tag: string) => tag.toLowerCase().trim())
+          .filter((tag: string) => AVAILABLE_TAGS.includes(tag as (typeof AVAILABLE_TAGS)[number]));
+        setSelectedTags(Array.from(new Set(importedTags)));
+      }
       if (data.ingredients && Array.isArray(data.ingredients)) setIngredients(data.ingredients.join("\n"));
       if (data.steps && Array.isArray(data.steps)) setSteps(data.steps.join("\n"));
       toast({ title: "Recipe imported!", description: "Review the fields below and save." });
@@ -141,6 +170,17 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
 
   const canSubmit = title.trim().length > 0 && ingredients.trim().length > 0 && steps.trim().length > 0 && !isUploading;
   const canImport = importUrl.trim().length > 0 && !importMutation.isPending;
+  const orderedTags = [
+    ...selectedTags,
+    ...AVAILABLE_TAGS.filter((tag) => !selectedTags.includes(tag)),
+  ];
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -348,16 +388,27 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
                 )}
               </div>
 
-              <div>
-                <label htmlFor="tags" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Tags</label>
-                <Input
-                  id="tags"
-                  placeholder="Italian, Pasta (comma-separated)"
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  className="rounded-xl bg-card border-0"
-                  data-testid="input-tags"
-                />
+                              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Tags</label>
+                <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
+                  {orderedTags.map((tag) => {
+                    const isSelected = selectedTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleTag(tag)}
+                        className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full transition-all ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-card text-muted-foreground"
+                        }`}
+                        data-testid={`tag-option-${tag}`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>
