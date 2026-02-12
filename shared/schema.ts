@@ -34,6 +34,14 @@ export const follows = pgTable("follows", {
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertRecipeSchema = createInsertSchema(recipes).omit({ id: true, createdAt: true, isBase: true });
+export const updateRecipeSchema = insertRecipeSchema.pick({
+  title: true,
+  description: true,
+  imageUrl: true,
+  tags: true,
+  ingredients: true,
+  steps: true,
+}).partial();
 
 export const signupSchema = z.object({
   username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
