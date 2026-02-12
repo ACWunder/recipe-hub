@@ -95,7 +95,7 @@ export default function DiscoverPage() {
             <UserIcon className="w-5 h-5" />
           </button>
         </div>
-        <p className="text-muted-foreground text-sm mb-3">Swipe right to save, left to skip</p>
+        <p className="text-muted-foreground text-sm mb-3">Swipe right to view, left to skip</p>
         <div className="flex gap-2 pb-2">
           {(["all", "mine", "following", "base"] as FilterScope[]).map((s) => (
             <button
@@ -251,7 +251,7 @@ function SwipeCard({
         className="absolute top-5 left-5 bg-primary/90 backdrop-blur-sm text-primary-foreground font-bold text-sm px-4 py-2 rounded-xl -rotate-12"
         style={{ opacity: likeOpacity }}
       >
-        SAVE
+        VIEW
       </motion.div>
       <motion.div
         className="absolute top-5 right-5 bg-destructive/90 backdrop-blur-sm text-destructive-foreground font-bold text-sm px-4 py-2 rounded-xl rotate-12"
