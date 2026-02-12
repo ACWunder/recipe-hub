@@ -30,39 +30,39 @@ const seedRecipes = [
     isBase: true,
   },
   {
-  title: "Bolognese",
-  description: "A slow-simmered Italian meat sauce made with minced meat, vegetables, wine, and tomatoes. The flavors develop through gentle cooking until rich and thick. Serve with pasta and finish with grated parmesan.",
-  imageUrl: "/images/bolognese.jpg",
-  tags: ["italian", "pasta"],
-  ingredients: [
-    "Butter",
-    "Olive oil",
-    "Basil",
-    "Onions",
-    "Carrot",
-    "Celery",
-    "Garlic",
-    "Minced meat",
-    "Red wine",
-    "Peeled tomatoes",
-    "Linguine",
-    "Parmesans",
-  ],
-  steps: [
-    "Brown the minced meat in a large pan over high heat until fully browned.",
-    "Add onions, carrot, celery, and garlic to the pan.",
-    "Cook until the vegetables become soft.",
-    "Deglaze with a splash of red wine.",
-    "Simmer until the wine is slightly reduced.",
-    "Add the peeled tomatoes.",
-    "Season with salt, pepper, and basil.",
-    "Simmer on low heat for 30–45 minutes until thick and rich.",
-    "Cook the linguine according to the package instructions.",
-    "Mix the sauce with the cooked pasta.",
-    "Sprinkle with parmesan before serving.",
-  ],
-  createdByUserId: "seed",
-  isBase: true,
+    title: "Bolognese",
+    description: "A slow-simmered Italian meat sauce made with minced meat, vegetables, wine, and tomatoes. The flavors develop through gentle cooking until rich and thick. Serve with pasta and finish with grated parmesan.",
+    imageUrl: "/images/bolognese.jpg",
+    tags: ["Italian", "Pasta"],
+    ingredients: [
+      "Butter",
+      "Olive oil",
+      "Basil",
+      "Onions",
+      "Carrot",
+      "Celery",
+      "Garlic",
+      "Minced meat",
+      "Red wine",
+      "Peeled tomatoes",
+      "Linguine",
+      "Parmesan",
+    ],
+    steps: [
+      "Brown the minced meat in a large pan over high heat until fully browned.",
+      "Add onions, carrot, celery, and garlic to the pan.",
+      "Cook until the vegetables become soft.",
+      "Deglaze with a splash of red wine.",
+      "Simmer until the wine is slightly reduced.",
+      "Add the peeled tomatoes.",
+      "Season with salt, pepper, and basil.",
+      "Simmer on low heat for 30–45 minutes until thick and rich.",
+      "Cook the linguine according to the package instructions.",
+      "Mix the sauce with the cooked pasta.",
+      "Sprinkle with parmesan before serving.",
+    ],
+    createdByUserId: "seed",
+    isBase: true,
   },
   {
     title: "Hawaiian Poke Bowl",
@@ -122,18 +122,29 @@ const seedRecipes = [
   },
 ];
 
+const normalizeTitle = (title: string) => title.trim().toLowerCase();
+
+
 export async function seedDatabase() {
   try {
-    const existing = await db.select().from(recipes);
-    if (existing.length > 0) {
-      log("Database already has recipes, skipping seed");
-      return;
-    }
+    const existing = await db.select({ title: recipes.title }).from(recipes);
+    const existingTitles = new Set(existing.map((recipe) => normalizeTitle(recipe.title)));
+
+    let inserted = 0;
+    let skipped = 0;
 
     for (const recipe of seedRecipes) {
+      if (existingTitles.has(normalizeTitle(recipe.title))) {
+        skipped += 1;
+        continue;
+      }
+
       await db.insert(recipes).values(recipe);
+      existingTitles.add(normalizeTitle(recipe.title));
+      inserted += 1;
     }
-    log(`Seeded ${seedRecipes.length} recipes`);
+
+    log(`Seed finished: inserted ${inserted}, skipped ${skipped}`);
   } catch (err) {
     log(`Seed error: ${err}`);
   }
