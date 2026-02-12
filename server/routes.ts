@@ -309,7 +309,16 @@ export async function registerRoutes(
         messages: [
           {
             role: "system",
-            content: `You extract recipe data from web page content. Return ONLY valid JSON with this exact schema:\n{"title":"string","description":"string or null","imageUrl":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}\nRules: ingredients one item per entry no numbering, steps concise ordered one per entry, tags 3-8 lowercase short words, imageUrl null unless found in content. No extra text, no markdown, no code fences. Just the JSON object.`,
+            content: `You extract recipe data from web page content. Return ONLY valid JSON with this exact schema:
+{"title":"string","description":"string or null","imageUrl":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}
+Rules:
+- Title: short neutral dish name only, max 3 words (example: "Lasagna"). Remove words like recipe/rezept/how to, brand or site names, and marketing adjectives such as "original", "best", "ultimate", "authentic", "perfect", "easy".
+- Description: always provide a short helpful description (1 sentence, max 140 chars) describing the dish.
+- Ingredients: one item per entry, no numbering, concise ingredient names. Remove marketing phrases and filler adjectives (e.g. output "potatoes", not "the best potatoes"). Normalize quantities for exactly 2 servings (2 people).
+- Steps: concise, practical, ordered, one action per entry. Keep each step short.
+- Tags: use ONLY from this allowed lowercase list (English): ["asian","italian","seafood","vegetarian","vegan","breakfast","baked-goods","healthy","high-protein","indian","chinese","vietnamese","thai","german","oven-baked","rice","pasta","salad","spicy","snack","soup","sweet"]. Do not output any other tags.
+- imageUrl: null unless found in content.
+No extra text, no markdown, no code fences. Output only the JSON object.`,
           },
           { role: "user", content: userContent },
         ],
@@ -326,11 +335,48 @@ export async function registerRoutes(
         return res.status(500).json({ message: "Failed to parse recipe from page" });
       }
 
+      const normalizedTitle = typeof recipeData.title === "string"
+        ? recipeData.title
+            .replace(/\b(recipe|rezept)\b/gi, "")
+            .replace(/\s*[:\-|–].*$/, "")
+            .replace(/^\s*(original|best|ultimate|authentic|perfect|easy)\s+/i, "")
+            .trim()
+        : "";
+
+      const allowedTags = new Set([
+        "asian",
+        "italian",
+        "seafood",
+        "vegetarian",
+        "vegan",
+        "breakfast",
+        "baked-goods",
+        "healthy",
+        "high-protein",
+        "indian",
+        "chinese",
+        "vietnamese",
+        "thai",
+        "german",
+        "oven-baked",
+        "rice",
+        "pasta",
+        "salad",
+        "spicy",
+        "snack",
+        "soup",
+        "sweet",
+      ]);
+
       const result = {
-        title: typeof recipeData.title === "string" ? recipeData.title.slice(0, 200) : "",
-        description: typeof recipeData.description === "string" ? recipeData.description.slice(0, 500) : null,
+        title: normalizedTitle.slice(0, 200),
+        description: typeof recipeData.description === "string" && recipeData.description.trim().length > 0 ? recipeData.description.trim().slice(0, 140) : `A flavorful ${normalizedTitle.toLowerCase()} for 2 servings.`,
         imageUrl: ogImage || null,
-        tags: Array.isArray(recipeData.tags) ? recipeData.tags.filter((t: any) => typeof t === "string").slice(0, 10) : [],
+        tags: Array.isArray(recipeData.tags) ? recipeData.tags
+          .filter((t: any) => typeof t === "string")
+          .map((t: string) => t.toLowerCase().trim())
+          .filter((t: string) => allowedTags.has(t))
+          .slice(0, 8) : [],
         ingredients: Array.isArray(recipeData.ingredients) ? recipeData.ingredients.filter((i: any) => typeof i === "string").slice(0, 50) : [],
         steps: Array.isArray(recipeData.steps) ? recipeData.steps.filter((s: any) => typeof s === "string").slice(0, 30) : [],
       };
