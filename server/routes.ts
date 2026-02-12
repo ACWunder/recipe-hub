@@ -329,6 +329,7 @@ export async function registerRoutes(
                 - Remove marketing phrases like "the best", "authentic", "ultimate", "perfect".
 
                 TITLE RULES:
+                - English Language!
                 - Short neutral dish name.
                 - Maximum 3 words.
                 - Remove words like "recipe", "Rezept", "how to", brand names.
