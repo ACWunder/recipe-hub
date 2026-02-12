@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertRecipeSchema, signupSchema, loginSchema } from "@shared/schema";
+import { insertRecipeSchema, updateRecipeSchema, signupSchema, loginSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { requireAuth } from "./auth";
 import passport from "passport";
@@ -123,6 +123,28 @@ export async function registerRoutes(
       res.status(500).json({ message: "Failed to create recipe" });
     }
   });
+
+  app.patch("/api/recipes/:id", requireAuth, async (req, res) => {
+    try {
+      const id = req.params.id as string;
+      const recipe = await storage.getRecipeById(id);
+      if (!recipe) return res.status(404).json({ message: "Recipe not found" });
+      if (recipe.createdByUserId !== req.user!.id) {
+        return res.status(403).json({ message: "You can only edit your own recipes" });
+      }
+
+      const data = updateRecipeSchema.parse(req.body);
+      const updated = await storage.updateRecipe(id, data);
+      if (!updated) return res.status(404).json({ message: "Recipe not found" });
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return res.status(400).json({ message: err.errors.map(e => e.message).join(", ") });
+      }
+      res.status(500).json({ message: "Failed to update recipe" });
+    }
+  });
+
 
   app.delete("/api/recipes/:id", requireAuth, async (req, res) => {
     try {

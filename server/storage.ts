@@ -17,6 +17,7 @@ export interface IStorage {
   getRecentRecipes(limit: number, scope?: string, userId?: string, followingIds?: string[]): Promise<RecipeWithAuthor[]>;
   getRecipeById(id: string): Promise<Recipe | undefined>;
   createRecipe(recipe: InsertRecipe): Promise<Recipe>;
+  updateRecipe(id: string, recipe: Partial<InsertRecipe>): Promise<Recipe | undefined>;
   deleteRecipe(id: string): Promise<boolean>;
 
   follow(followerUserId: string, followingUserId: string): Promise<Follow>;
@@ -101,6 +102,10 @@ export class DatabaseStorage implements IStorage {
   async deleteRecipe(id: string): Promise<boolean> {
     const result = await db.delete(recipes).where(eq(recipes.id, id)).returning();
     return result.length > 0;
+  }
+  async updateRecipe(id: string, recipe: Partial<InsertRecipe>): Promise<Recipe | undefined> {
+    const [updated] = await db.update(recipes).set(recipe).where(eq(recipes.id, id)).returning();
+    return updated;
   }
 
   async follow(followerUserId: string, followingUserId: string): Promise<Follow> {
