@@ -27,7 +27,7 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <RecipeDetailProvider>
-            <div className="flex flex-col h-[100dvh] bg-background overflow-hidden">
+            <div className="app-shell flex flex-col h-[100dvh] bg-background overflow-hidden">
               <main className="flex-1 overflow-hidden relative">
                 <motion.div
                   key={activeTab}
@@ -40,6 +40,9 @@ function App() {
                 </motion.div>
               </main>
               <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+            </div>
+            <div className="landscape-blocker" role="status" aria-live="polite">
+              <p>Please rotate your phone back to portrait mode.</p>
             </div>
             <Toaster />
           </RecipeDetailProvider>
