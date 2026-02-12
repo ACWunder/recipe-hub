@@ -12,9 +12,32 @@ declare global {
       id: string;
       username: string;
       displayName: string | null;
+      isAdmin?: boolean;
     }
   }
 }
+
+const adminUsernames = new Set(
+  (process.env.ADMIN_USERNAMES ?? "arthur")
+    .split(",")
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+export function isAdminUser(user: Pick<Express.User, "username"> | null | undefined): boolean {
+  if (!user?.username) return false;
+  return adminUsernames.has(user.username.toLowerCase());
+}
+
+function sessionUserFromDbUser(user: User): Express.User {
+  return {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    isAdmin: isAdminUser({ username: user.username }),
+  };
+}
+
 
 export function setupAuth(app: Express) {
   app.use(
@@ -41,7 +64,7 @@ export function setupAuth(app: Express) {
         if (!user) return done(null, false, { message: "Invalid username or password" });
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return done(null, false, { message: "Invalid username or password" });
-        return done(null, { id: user.id, username: user.username, displayName: user.displayName });
+        return done(null, sessionUserFromDbUser(user));
       } catch (err) {
         return done(err);
       }
@@ -56,7 +79,7 @@ export function setupAuth(app: Express) {
     try {
       const user = await storage.getUser(id);
       if (!user) return done(null, false);
-      done(null, { id: user.id, username: user.username, displayName: user.displayName });
+      done(null, sessionUserFromDbUser(user));
     } catch (err) {
       done(err);
     }

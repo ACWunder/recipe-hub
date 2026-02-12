@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertRecipeSchema, updateRecipeSchema, signupSchema, loginSchema } from "@shared/schema";
 import { ZodError } from "zod";
-import { requireAuth } from "./auth";
+import { isAdminUser, requireAuth } from "./auth";
 import passport from "passport";
 import bcrypt from "bcryptjs";
 import OpenAI from "openai";
@@ -27,9 +27,9 @@ export async function registerRoutes(
         passwordHash,
         displayName: data.displayName || null,
       });
-      req.login({ id: user.id, username: user.username, displayName: user.displayName }, (err) => {
+      req.login({ id: user.id, username: user.username, displayName: user.displayName, isAdmin: isAdminUser(user) }, (err) => {
         if (err) return res.status(500).json({ message: "Login failed after signup" });
-        res.status(201).json({ id: user.id, username: user.username, displayName: user.displayName });
+        res.status(201).json({ id: user.id, username: user.username, displayName: user.displayName, isAdmin: isAdminUser(user) });
       });
     } catch (err) {
       if (err instanceof ZodError) {
@@ -52,7 +52,7 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ message: info?.message || "Invalid credentials" });
       req.login(user, (err) => {
         if (err) return next(err);
-        res.json({ id: user.id, username: user.username, displayName: user.displayName });
+        res.json({ id: user.id, username: user.username, displayName: user.displayName, isAdmin: user.isAdmin || false });
       });
     })(req, res, next);
   });
@@ -132,7 +132,8 @@ export async function registerRoutes(
       const id = req.params.id as string;
       const recipe = await storage.getRecipeById(id);
       if (!recipe) return res.status(404).json({ message: "Recipe not found" });
-      if (recipe.createdByUserId !== req.user!.id) {
+      const canManageRecipe = recipe.createdByUserId === req.user!.id || (recipe.isBase && req.user!.isAdmin);
+      if (!canManageRecipe) {
         return res.status(403).json({ message: "You can only edit your own recipes" });
       }
 
@@ -154,7 +155,8 @@ export async function registerRoutes(
       const id = req.params.id as string;
       const recipe = await storage.getRecipeById(id);
       if (!recipe) return res.status(404).json({ message: "Recipe not found" });
-      if (recipe.createdByUserId !== req.user!.id) {
+      const canManageRecipe = recipe.createdByUserId === req.user!.id || (recipe.isBase && req.user!.isAdmin);
+      if (!canManageRecipe) {
         return res.status(403).json({ message: "You can only delete your own recipes" });
       }
       await storage.deleteRecipe(id);
