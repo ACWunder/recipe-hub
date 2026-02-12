@@ -82,9 +82,11 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
       <Drawer.Root open={open} onOpenChange={onOpenChange}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
-          <Drawer.Content className="max-h-[94dvh] rounded-t-3xl outline-none bg-background fixed inset-x-0 bottom-0 z-50">
+          <Drawer.Content className="h-[94dvh] rounded-t-3xl outline-none bg-background fixed inset-x-0 bottom-0 z-50 flex flex-col">
             <div className="mx-auto w-10 h-1 flex-shrink-0 rounded-full bg-muted-foreground/20 mt-3 mb-3" />
-            <div className="overflow-y-auto pb-10 px-6">
+
+            {/* critical: give the scroll container a bounded height inside a flex column */}
+            <div className="flex-1 min-h-0 overflow-y-auto pb-10 px-6 overscroll-contain touch-pan-y">
               <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
                 <h2 className="font-serif text-2xl font-bold leading-tight flex-1" data-testid="text-recipe-title">
                   {recipe.title}
@@ -168,14 +170,18 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                       whileTap={{ scale: 0.98 }}
                       data-testid={`ingredient-item-${i}`}
                     >
-                      <div className={`mt-0.5 w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                        checkedIngredients.has(i) ? "bg-primary" : "bg-muted"
-                      }`}>
+                      <div
+                        className={`mt-0.5 w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                          checkedIngredients.has(i) ? "bg-primary" : "bg-muted"
+                        }`}
+                      >
                         {checkedIngredients.has(i) && <Check className="w-3 h-3 text-primary-foreground" />}
                       </div>
-                      <span className={`text-sm leading-relaxed transition-all duration-200 ${
-                        checkedIngredients.has(i) ? "line-through text-muted-foreground/50" : ""
-                      }`}>
+                      <span
+                        className={`text-sm leading-relaxed transition-all duration-200 ${
+                          checkedIngredients.has(i) ? "line-through text-muted-foreground/50" : ""
+                        }`}
+                      >
                         {item}
                       </span>
                     </motion.li>
@@ -222,7 +228,9 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl" data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl" data-testid="button-cancel-delete">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               className="rounded-xl bg-destructive text-destructive-foreground"
               onClick={() => deleteMutation.mutate(recipe.id)}
