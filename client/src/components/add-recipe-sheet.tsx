@@ -388,7 +388,8 @@ export default function AddRecipeSheet({ open, onOpenChange }: AddRecipeSheetPro
                 )}
               </div>
 
-                              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Tags</label>
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Tags</label>
                 <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
                   {orderedTags.map((tag) => {
                     const isSelected = selectedTags.includes(tag);
