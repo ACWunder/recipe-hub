@@ -309,16 +309,78 @@ export async function registerRoutes(
         messages: [
           {
             role: "system",
-            content: `You extract recipe data from web page content. Return ONLY valid JSON with this exact schema:
-{"title":"string","description":"string or null","imageUrl":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}
-Rules:
-- Title: capitalized, short neutral dish name only, max 3 words (example: "Lasagna"). Remove words like recipe/rezept/how to, brand or site names, and marketing adjectives such as "original", "best", "ultimate", "authentic", "perfect", "easy".
-- Description: always provide a short helpful description (3 sentences, max 400 chars) describing the dish.
-- Ingredients: one item per entry, no numbering, concise ingredient names. Remove marketing phrases and filler adjectives (e.g. output "potatoes", not "the best potatoes"). Normalize quantities for exactly 2 servings (2 people).
-- Steps: concise, practical, ordered, one action per entry. Keep each step short.
-- Tags: use ONLY from this allowed lowercase list (English): ["asian","italian","seafood","vegetarian","vegan","breakfast","baked-goods","healthy","high-protein","indian","chinese","vietnamese","thai","german","oven-baked","rice","pasta","salad","spicy","snack","soup","sweet"]. Do not output any other tags. (but for example lasagna is pasta and italian)
-- imageUrl: null unless found in content.
-No extra text, no markdown, no code fences. Output only the JSON object.`,
+            content: `You extract structured recipe data from raw web page content.
+
+                Your task:
+                Extract ALL recipe data completely and return ONLY valid JSON in English using this exact schema:
+
+                {"title":"string","description":"string","imageUrl":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}
+
+                CRITICAL RULES:
+                - Translate everything into English, even if the source recipe is German or another language.
+                - Extract ALL listed ingredients exactly as written in the recipe. Do NOT summarize or reduce the list.
+                - If the recipe lists 20 ingredients, your output must contain 20 ingredients.
+                - Do NOT merge ingredients.
+                - Do NOT invent ingredients.
+                - Do NOT omit ingredients.
+                - Keep quantities exactly as given (e.g. "200 g flour", "1 tsp salt").
+                - One ingredient per array entry.
+                - No numbering in ingredients.
+                - Remove marketing phrases like "the best", "authentic", "ultimate", "perfect".
+
+                TITLE RULES:
+                - Short neutral dish name.
+                - Maximum 3 words.
+                - Remove words like "recipe", "Rezept", "how to", brand names.
+                - Example: "Lasagna"
+
+                DESCRIPTION RULES:
+                - Always generate a short helpful description.
+                - 2–3 sentences.
+                - Maximum 400 characters.
+                - Describe the dish, flavor, and context briefly.
+
+                STEPS RULES:
+                - Extract ALL steps in correct order.
+                - One action per entry.
+                - Keep steps concise and practical.
+                - Do NOT combine multiple instructions into one step.
+
+                TAGS RULES:
+                Use ONLY from this allowed lowercase list:
+                ["asian","italian","seafood","vegetarian","vegan","breakfast","baked-goods","healthy","high-protein","indian","chinese","vietnamese","thai","german","oven-baked","rice","pasta","salad","spicy","snack","soup","sweet"]
+
+                Choose relevant tags only.
+                Example: Lasagna → ["italian","pasta","oven-baked"]
+
+                imageUrl:
+                - Use the main recipe image if clearly present.
+                - Otherwise null.
+
+                EXAMPLE INPUT (German):
+                "Spaghetti Carbonara Rezept
+                Zutaten:
+                200 g Spaghetti
+                100 g Speck
+                2 Eier
+                50 g Parmesan
+                Salz
+                Pfeffer
+                Zubereitung:
+                1. Spaghetti kochen.
+                2. Speck anbraten.
+                3. Eier mit Parmesan verrühren.
+                4. Alles vermengen."
+
+                EXAMPLE OUTPUT:
+                {"title":"Spaghetti Carbonara","description":"A classic Italian pasta dish made with eggs, cheese, and crispy bacon. The creamy sauce is created without cream and coats the pasta beautifully. Simple, rich, and comforting.","imageUrl":null,"tags":["italian","pasta"],"ingredients":["200 g spaghetti","100 g bacon","2 eggs","50 g parmesan","salt","pepper"],"steps":["Cook the spaghetti until al dente.","Fry the bacon until crispy.","Whisk the eggs with grated parmesan.","Combine everything while the pasta is hot."]}
+
+                IMPORTANT:
+                Return ONLY the JSON object.
+                No explanations.
+                No markdown.
+                No code fences.
+                No extra text.`,
           },
           { role: "user", content: userContent },
         ],
