@@ -2,7 +2,7 @@ import { db } from "./db";
 import { recipes, users } from "@shared/schema";
 import { log } from "./index";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 const seedRecipes = [
   {
@@ -2838,24 +2838,17 @@ export async function seedDatabase() {
   try {
     await ensureAdminAccount();
 
-    const existing = await db.select({ title: recipes.title }).from(recipes);
-    const existingTitles = new Set(existing.map((recipe) => normalizeTitle(recipe.title)));
+    const removedCount = await db.transaction(async (tx) => {
+      const removed = await tx
+        .delete(recipes)
+        .where(and(eq(recipes.isBase, true), eq(recipes.createdByUserId, "seed")))
+        .returning({ id: recipes.id });
 
-    let inserted = 0;
-    let skipped = 0;
+      await tx.insert(recipes).values(seedRecipes);
+      return removed.length;
+    });
 
-    for (const recipe of seedRecipes) {
-      if (existingTitles.has(normalizeTitle(recipe.title))) {
-        skipped += 1;
-        continue;
-      }
-
-      await db.insert(recipes).values(recipe);
-      existingTitles.add(normalizeTitle(recipe.title));
-      inserted += 1;
-    }
-
-    log(`Seed finished: inserted ${inserted}, skipped ${skipped}`);
+    log(`Seed finished: reloaded ${seedRecipes.length} base recipes (removed ${removedCount})`);
   } catch (err) {
     log(`Seed error: ${err}`);
   }
