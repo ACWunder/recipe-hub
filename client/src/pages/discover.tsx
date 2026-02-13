@@ -213,7 +213,7 @@ export default function DiscoverPage() {
                   key={recipe.id}
                   className="absolute inset-0 rounded-3xl overflow-hidden"
                   animate={{
-                    y: stackIdx * 18,
+                    y: stackIdx * 9,
                     scale: 1,
                     opacity: 1,
                   }}
