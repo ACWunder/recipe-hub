@@ -3,11 +3,12 @@ import type { RecipeWithAuthor } from "@shared/schema";
 import { useState } from "react";
 import { useRecipeDetail } from "@/components/recipe-detail-context";
 import RecipePlaceholder from "@/components/recipe-placeholder";
-import { Clock } from "lucide-react";
+import { AlertCircle, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import AuthSheet from "@/components/auth-sheet";
+import RecentHelpSheet from "@/components/recent-help-sheet";
 
 type FilterScope = "all" | "mine" | "following" | "base";
 
@@ -25,6 +26,7 @@ export default function RecentPage() {
   const { user } = useAuth();
   const [scope, setScope] = useState<FilterScope>("all");
   const [authOpen, setAuthOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const { data: recipes, isLoading } = useQuery<RecipeWithAuthor[]>({
     queryKey: ["/api/recipes/recent", `?scope=${scope}`],
@@ -50,6 +52,14 @@ export default function RecentPage() {
             <h1 className="font-serif text-3xl font-bold tracking-tight" data-testid="text-recent-title">Recent</h1>
             <p className="text-muted-foreground text-sm mt-1">Freshly added recipes</p>
           </div>
+          <button
+            onClick={() => setHelpOpen(true)}
+            className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+            data-testid="button-open-recent-help"
+            aria-label="Open quick guide"
+          >
+            <AlertCircle className="w-5 h-5" />
+          </button>
         </div>
         <div className="flex gap-2">
           {(["mine", "following", "base"] as FilterScope[]).map((s) => (
@@ -138,6 +148,7 @@ export default function RecentPage() {
       </div>
 
       <AuthSheet open={authOpen} onOpenChange={setAuthOpen} />
+      <RecentHelpSheet open={helpOpen} onOpenChange={setHelpOpen} />
     </div>
   );
 }
