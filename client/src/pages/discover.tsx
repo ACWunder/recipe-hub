@@ -33,6 +33,7 @@ export default function DiscoverPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isRefilling, setIsRefilling] = useState(false);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [swipeIntent, setSwipeIntent] = useState<"left" | "right" | null>(null);
   const { openRecipe } = useRecipeDetail();
   const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -44,6 +45,7 @@ export default function DiscoverPage() {
       setCurrentIndex(0);
       setIsRefilling(false);
       setIsSwiping(false);
+      setSwipeIntent(null);
       return;
     }
 
@@ -51,6 +53,7 @@ export default function DiscoverPage() {
     setCurrentIndex(0);
     setIsRefilling(false);
     setIsSwiping(false);
+    setSwipeIntent(null);
   }, [recipes, scope]);
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export default function DiscoverPage() {
       if (refillTimeoutRef.current) clearTimeout(refillTimeoutRef.current);
 
       setIsSwiping(true);
+      setSwipeIntent(direction);
 
       if (direction === "right" && deckRecipes[currentIndex]) {
         openTimeoutRef.current = setTimeout(() => {
@@ -85,6 +89,7 @@ export default function DiscoverPage() {
           setCurrentIndex(deckRecipes.length);
           setIsRefilling(true);
           setIsSwiping(false);
+          setSwipeIntent(null);
 
           refillTimeoutRef.current = setTimeout(() => {
             setDeckRecipes(shuffleRecipes(deckRecipes));
@@ -96,6 +101,7 @@ export default function DiscoverPage() {
 
         setCurrentIndex(nextIndex);
         setIsSwiping(false);
+        setSwipeIntent(null);
       }, 300);
     },
     [deckRecipes, currentIndex, isRefilling, isSwiping, openRecipe]
@@ -109,6 +115,7 @@ export default function DiscoverPage() {
     setScope(s);
     setCurrentIndex(0);
     setIsSwiping(false);
+    setSwipeIntent(null);
   };
 
   if (isLoading) {
@@ -204,6 +211,7 @@ export default function DiscoverPage() {
                     onSwipe={handleSwipe}
                     showAuthor={showAuthor}
                     disabled={isSwiping}
+                    swipeIntent={swipeIntent}
                   />
                 );
               }
@@ -260,11 +268,13 @@ function SwipeCard({
   onSwipe,
   showAuthor,
   disabled,
+  swipeIntent,
 }: {
   recipe: RecipeWithAuthor;
   onSwipe: (dir: "left" | "right") => void;
   showAuthor: boolean;
   disabled: boolean;
+  swipeIntent: "left" | "right" | null;
 }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-300, 300], [-14, 14]);
@@ -282,6 +292,12 @@ function SwipeCard({
     },
     [onSwipe, x]
   );
+
+
+  useEffect(() => {
+    if (!swipeIntent) return;
+    animateOut(swipeIntent);
+  }, [swipeIntent, animateOut]);
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (disabled) return;
