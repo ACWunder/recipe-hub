@@ -2834,21 +2834,38 @@ async function ensureAdminAccount() {
 
 
 
+//export async function seedDatabase() {
+//  //try {
+  //  //await ensureAdminAccount();
+
+    //const removedCount = await db.transaction(async (tx) => {
+      //const removed = await tx
+        //.delete(recipes)
+        //.where(and(eq(recipes.isBase, true), eq(recipes.createdByUserId, "seed")))
+        //.returning({ id: recipes.id });
+
+      //await tx.insert(recipes).values(seedRecipes);
+      //return removed.length;
+    //});
+
+    //log(`Seed finished: reloaded ${seedRecipes.length} base recipes (removed ${removedCount})`);
+ // } catch (err) {
+   // log(`Seed error: ${err}`);
+  //}
+//}
+
 export async function seedDatabase() {
   try {
-    await ensureAdminAccount();
+    const existing = await db.select().from(recipes);
+    if (existing.length > 0) {
+      log("Database already has recipes, skipping seed");
+      return;
+    }
 
-    const removedCount = await db.transaction(async (tx) => {
-      const removed = await tx
-        .delete(recipes)
-        .where(and(eq(recipes.isBase, true), eq(recipes.createdByUserId, "seed")))
-        .returning({ id: recipes.id });
-
-      await tx.insert(recipes).values(seedRecipes);
-      return removed.length;
-    });
-
-    log(`Seed finished: reloaded ${seedRecipes.length} base recipes (removed ${removedCount})`);
+    for (const recipe of seedRecipes) {
+      await db.insert(recipes).values(recipe);
+    }
+    log(`Seeded ${seedRecipes.length} recipes`);
   } catch (err) {
     log(`Seed error: ${err}`);
   }
