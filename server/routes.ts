@@ -316,88 +316,74 @@ export async function registerRoutes(
             role: "system",
             content: `You extract structured recipe data from raw web page content.
 
-                Your task:
-                Extract ALL recipe data completely and return ONLY valid JSON in English using this exact schema:
+Your task:
+Extract ALL recipe data completely and return ONLY valid JSON in English using this exact schema:
 
-                {"title":"string","description":"string","imageUrl":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}
+{"title":"string","description":"string","imageUrl":"string or null","tags":["string"],"ingredients":["string"],"steps":["string"]}
 
-                CRITICAL RULES:
-                - Translate everything into English, even if the source recipe is German or another language.
-                - Extract ALL listed ingredients exactly as written in the recipe. Do NOT summarize or reduce the list.
-                - If the recipe lists 20 ingredients, your output must contain 20 ingredients.
-                - Do NOT merge ingredients.
-                - Do NOT invent ingredients.
-                - Do NOT omit ingredients.
-                - Keep quantities exactly as given (e.g. "200 g flour", "1 tsp salt").
-                - One ingredient per array entry.
-                - No numbering in ingredients.
-                - Remove marketing phrases like "the best", "authentic", "ultimate", "perfect".
-                - ALL textual fields (title, description, ingredients, steps) MUST be in English.
-                - If any field is not in English, translate it.
+CRITICAL RULES:
+- Translate everything into English, even if the source recipe is German or another language.
+- Extract ALL listed ingredients exactly as written in the recipe. Do NOT summarize or reduce the list.
+- If the recipe lists 20 ingredients, your output must contain 20 ingredients.
+- Do NOT merge ingredients.
+- Do NOT invent ingredients.
+- Do NOT omit ingredients.
+- Keep quantities exactly as given (e.g. "200 g flour", "1 tsp salt").
+- One ingredient per array entry.
+- No numbering in ingredients.
+- Remove marketing phrases like "the best", "authentic", "ultimate", "perfect".
+- ALL textual fields (title, description, ingredients, steps) MUST be in English.
+- If any field is not in English, translate it.
 
+TITLE RULES:
+- The title MUST be fully translated into natural English.
+- The title MUST NOT remain in the original language.
+- If the source title is German or another language, translate it.
+- Do NOT reuse the original wording unless it is already English.
+- Keep it short, neutral, maximum 3 words.
+- Remove words like "recipe", "Rezept", "how to", brand names.
+- Remove marketing adjectives like "original", "best", "authentic", "ultimate", "perfect".
+- Use common English dish naming conventions.
 
-                TITLE RULES:
-                - The title MUST be fully translated into natural English.
-                - The title MUST NOT remain in the original language.
-                - If the source title is German or another language, translate it.
-                - Do NOT reuse the original wording unless it is already English.
-                - Keep it short, neutral, maximum 3 words.
-                - Remove words like "recipe", "Rezept", "how to", brand names.
-                - Remove marketing adjectives like "original", "best", "authentic", "ultimate", "perfect".
-                - Use common English dish naming conventions.
-                Examples:
-                - "Apfelkuchen" → "Apple Cake"
-                - "Klassische Linsensuppe" → "Lentil Soup"
-                - "Omas Kartoffelsalat" → "Potato Salad"
+Examples:
+- "Apfelkuchen" → "Apple Cake"
+- "Klassische Linsensuppe" → "Lentil Soup"
+- "Omas Kartoffelsalat" → "Potato Salad"
 
+DESCRIPTION RULES:
+- Always generate a short helpful description.
+- 2–3 sentences.
+- Maximum 400 characters.
+- Describe the dish, flavor, and context briefly.
 
-                DESCRIPTION RULES:
-                - Always generate a short helpful description.
-                - 2–3 sentences.
-                - Maximum 400 characters.
-                - Describe the dish, flavor, and context briefly.
+STEPS RULES:
+- Extract ALL steps in correct order.
+- One action per entry.
+- Keep steps concise and practical.
+- Do NOT combine multiple instructions into one step.
 
-                STEPS RULES:
-                - Extract ALL steps in correct order.
-                - One action per entry.
-                - Keep steps concise and practical.
-                - Do NOT combine multiple instructions into one step.
+TAGS RULES:
+Use ONLY from this allowed list (Capitalized): ["Asian","Italian","Seafood","Vegetarian","Vegan","Breakfast","Baked-Goods","Healthy","High-Protein","Indian","Chinese","Vietnamese","Thai","German","Oven-Baked","Rice","Pasta","Salad","Spicy","Snack","Soup","Sweet","Try"]
+Choose relevant tags only.
+Example: Lasagna → ["Italian","Pasta","Oven-Baked"]
 
-                TAGS RULES:
-                Use ONLY from this allowed lowercase list:
-                ["asian","italian","seafood","vegetarian","vegan","breakfast","baked-goods","healthy","high-protein","indian","chinese","vietnamese","thai","german","oven-baked","rice","pasta","salad","spicy","snack","soup","sweet", "try"]
+imageUrl:
+- Use the main recipe image if clearly present.
+- Otherwise null.
 
-                Choose relevant tags only.
-                Example: Lasagna → ["italian","pasta","oven-baked"]
+EXAMPLE INPUT (German):
+"Spaghetti Carbonara Rezept Zutaten: 200 g Spaghetti 100 g Speck 2 Eier 50 g Parmesan Salz Pfeffer Zubereitung: 1. Spaghetti kochen. 2. Speck anbraten. 3. Eier mit Parmesan verrühren. 4. Alles vermengen."
 
-                imageUrl:
-                - Use the main recipe image if clearly present.
-                - Otherwise null.
+EXAMPLE OUTPUT:
+{"title":"Spaghetti Carbonara","description":"A classic Italian pasta dish made with eggs, cheese, and crispy bacon. The creamy sauce is created without cream and coats the pasta beautifully. Simple, rich, and comforting.","imageUrl":null,"tags":["Italian","Pasta"],"ingredients":["200 g spaghetti","100 g bacon","2 eggs","50 g parmesan","salt","pepper"],"steps":["Cook the spaghetti until al dente.","Fry the bacon until crispy.","Whisk the eggs with grated parmesan.","Combine everything while the pasta is hot."]}
 
-                EXAMPLE INPUT (German):
-                "Spaghetti Carbonara Rezept
-                Zutaten:
-                200 g Spaghetti
-                100 g Speck
-                2 Eier
-                50 g Parmesan
-                Salz
-                Pfeffer
-                Zubereitung:
-                1. Spaghetti kochen.
-                2. Speck anbraten.
-                3. Eier mit Parmesan verrühren.
-                4. Alles vermengen."
-
-                EXAMPLE OUTPUT:
-                {"title":"Spaghetti Carbonara","description":"A classic Italian pasta dish made with eggs, cheese, and crispy bacon. The creamy sauce is created without cream and coats the pasta beautifully. Simple, rich, and comforting.","imageUrl":null,"tags":["italian","pasta"],"ingredients":["200 g spaghetti","100 g bacon","2 eggs","50 g parmesan","salt","pepper"],"steps":["Cook the spaghetti until al dente.","Fry the bacon until crispy.","Whisk the eggs with grated parmesan.","Combine everything while the pasta is hot."]}
-
-                IMPORTANT:
-                Return ONLY the JSON object.
-                No explanations.
-                No markdown.
-                No code fences.
-                No extra text.`,
+IMPORTANT:
+Return ONLY the JSON object.
+No explanations.
+No markdown.
+No code fences.
+No extra text.
+`,
           },
           { role: "user", content: userContent },
         ],

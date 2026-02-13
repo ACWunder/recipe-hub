@@ -34,11 +34,13 @@ export default function AllRecipesPage() {
     new Set((recipes || []).flatMap((r) => r.tags))
   ).sort();
 
-  const filtered = (recipes || []).filter((r) => {
-    if (search && !r.title.toLowerCase().includes(search.toLowerCase())) return false;
-    if (selectedTag && !r.tags.includes(selectedTag)) return false;
-    return true;
-  });
+  const filtered = (recipes || [])
+    .filter((r) => {
+      if (search && !r.title.toLowerCase().includes(search.toLowerCase())) return false;
+      if (selectedTag && !r.tags.includes(selectedTag)) return false;
+      return true;
+    })
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
 
   const handleScopeChange = (s: FilterScope) => {
     if ((s === "mine" || s === "following") && !user) {
