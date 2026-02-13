@@ -11,6 +11,15 @@ import AuthSheet from "@/components/auth-sheet";
 
 type FilterScope = "all" | "mine" | "following" | "base";
 
+function shuffleRecipes(recipes: RecipeWithAuthor[]) {
+  const shuffled = [...recipes];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export default function DiscoverPage() {
   const { user } = useAuth();
   const [scope, setScope] = useState<FilterScope>("all");
@@ -20,41 +29,76 @@ export default function DiscoverPage() {
     queryKey: ["/api/recipes", `?scope=${scope}`],
   });
 
+  const [deckRecipes, setDeckRecipes] = useState<RecipeWithAuthor[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
+  const [isRefilling, setIsRefilling] = useState(false);
   const { openRecipe } = useRecipeDetail();
   const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!recipes || recipes.length === 0) {
+      setDeckRecipes([]);
+      setCurrentIndex(0);
+      setExitDirection(null);
+      setIsRefilling(false);
+      return;
+    }
+
+    setDeckRecipes(shuffleRecipes(recipes));
+    setCurrentIndex(0);
+    setExitDirection(null);
+    setIsRefilling(false);
+  }, [recipes, scope]);
 
   useEffect(() => {
     return () => {
       if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
       if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+      if (refillTimeoutRef.current) clearTimeout(refillTimeoutRef.current);
     };
   }, []);
 
   const handleSwipe = useCallback(
     (direction: "left" | "right") => {
-      if (!recipes) return;
+      if (deckRecipes.length === 0 || isRefilling) return;
 
       if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
       if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+      if (refillTimeoutRef.current) clearTimeout(refillTimeoutRef.current);
 
       setExitDirection(direction);
 
-      if (direction === "right" && recipes[currentIndex]) {
+      if (direction === "right" && deckRecipes[currentIndex]) {
         openTimeoutRef.current = setTimeout(() => {
-          const recipe = recipes[currentIndex];
+          const recipe = deckRecipes[currentIndex];
           if (recipe) openRecipe(recipe);
         }, 350);
       }
 
       swipeTimeoutRef.current = setTimeout(() => {
-        setCurrentIndex((prev) => prev + 1);
+        const nextIndex = currentIndex + 1;
+
+        if (nextIndex >= deckRecipes.length) {
+          setCurrentIndex(deckRecipes.length);
+          setExitDirection(null);
+          setIsRefilling(true);
+
+          refillTimeoutRef.current = setTimeout(() => {
+            setDeckRecipes(shuffleRecipes(deckRecipes));
+            setCurrentIndex(0);
+            setIsRefilling(false);
+          }, 700);
+          return;
+        }
+
+        setCurrentIndex(nextIndex);
         setExitDirection(null);
       }, 350);
     },
-    [recipes, currentIndex, openRecipe]
+    [deckRecipes, currentIndex, isRefilling, openRecipe]
   );
 
   const handleScopeChange = (s: FilterScope) => {
@@ -79,7 +123,7 @@ export default function DiscoverPage() {
     );
   }
 
-  const remaining = recipes ? recipes.slice(currentIndex) : [];
+  const remaining = deckRecipes.slice(currentIndex);
   const showAuthor = scope !== "mine";
 
   return (
@@ -112,7 +156,22 @@ export default function DiscoverPage() {
         </div>
       </header>
 
-      {remaining.length === 0 ? (
+      {isRefilling ? (
+        <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: [0.9, 1.05, 1], opacity: 1, rotate: [0, 6, -6, 0] }}
+            transition={{ duration: 0.7, ease: "easeInOut" }}
+            className="w-20 h-20 rounded-3xl bg-primary/8 flex items-center justify-center mb-6"
+          >
+            <Sparkles className="w-9 h-9 text-primary" />
+          </motion.div>
+          <h2 className="font-serif text-2xl font-bold mb-2">Neue Reihenfolge...</h2>
+          <p className="text-muted-foreground text-sm max-w-[260px] leading-relaxed">
+            Der Discover-Stapel wird neu gemischt.
+          </p>
+        </div>
+      ) : remaining.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
