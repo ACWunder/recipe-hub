@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import type { Express, RequestHandler } from "express";
 import type { User } from "@shared/schema";
+import { log } from "./index";
 
 declare global {
   namespace Express {
@@ -17,12 +18,15 @@ declare global {
   }
 }
 
+export const bootstrapAdminUsername = (process.env.BOOTSTRAP_ADMIN_USERNAME ?? "arthur_admin").trim();
+export const bootstrapAdminPassword = (process.env.BOOTSTRAP_ADMIN_PASSWORD ?? "ArthurAdmin!2026").trim();
+
 const configuredAdminUsernames = (process.env.ADMIN_USERNAMES ?? "")
   .split(",")
   .map((name) => name.trim().toLowerCase())
   .filter(Boolean);
 
-const adminUsernames = new Set(["arthur", "adminarthur", ...configuredAdminUsernames]);
+const adminUsernames = new Set(["arthur", bootstrapAdminUsername.toLowerCase(), ...configuredAdminUsernames]);
 
 export function isAdminUser(user: Pick<Express.User, "username"> | null | undefined): boolean {
   if (!user?.username) return false;
