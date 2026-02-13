@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { RecipeWithAuthor } from "@shared/schema";
 import { useState, useCallback, useEffect, useRef } from "react";
-import { motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, useTransform, animate, PanInfo } from "framer-motion";
 import { useRecipeDetail } from "@/components/recipe-detail-context";
 import RecipePlaceholder from "@/components/recipe-placeholder";
 import { Heart, X, Sparkles, User as UserIcon } from "lucide-react";
@@ -33,8 +33,8 @@ export default function DiscoverPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
   const [isRefilling, setIsRefilling] = useState(false);
+  const [isSwiping, setIsSwiping] = useState(false);
   const { openRecipe } = useRecipeDetail();
-  const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -44,6 +44,7 @@ export default function DiscoverPage() {
       setCurrentIndex(0);
       setExitDirection(null);
       setIsRefilling(false);
+      setIsSwiping(false);
       return;
     }
 
@@ -51,11 +52,11 @@ export default function DiscoverPage() {
     setCurrentIndex(0);
     setExitDirection(null);
     setIsRefilling(false);
+    setIsSwiping(false);
   }, [recipes, scope]);
 
   useEffect(() => {
     return () => {
-      if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
       if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
       if (refillTimeoutRef.current) clearTimeout(refillTimeoutRef.current);
     };
@@ -63,43 +64,47 @@ export default function DiscoverPage() {
 
   const handleSwipe = useCallback(
     (direction: "left" | "right") => {
-      if (deckRecipes.length === 0 || isRefilling) return;
+      if (deckRecipes.length === 0 || isRefilling || isSwiping || exitDirection) return;
 
-      if (swipeTimeoutRef.current) clearTimeout(swipeTimeoutRef.current);
       if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
       if (refillTimeoutRef.current) clearTimeout(refillTimeoutRef.current);
 
+      setIsSwiping(true);
       setExitDirection(direction);
 
       if (direction === "right" && deckRecipes[currentIndex]) {
         openTimeoutRef.current = setTimeout(() => {
           const recipe = deckRecipes[currentIndex];
           if (recipe) openRecipe(recipe);
-        }, 350);
+        }, 220);
       }
-
-      swipeTimeoutRef.current = setTimeout(() => {
-        const nextIndex = currentIndex + 1;
-
-        if (nextIndex >= deckRecipes.length) {
-          setCurrentIndex(deckRecipes.length);
-          setExitDirection(null);
-          setIsRefilling(true);
-
-          refillTimeoutRef.current = setTimeout(() => {
-            setDeckRecipes(shuffleRecipes(deckRecipes));
-            setCurrentIndex(0);
-            setIsRefilling(false);
-          }, 700);
-          return;
-        }
-
-        setCurrentIndex(nextIndex);
-        setExitDirection(null);
-      }, 350);
     },
-    [deckRecipes, currentIndex, isRefilling, openRecipe]
+    [deckRecipes, currentIndex, isRefilling, isSwiping, exitDirection, openRecipe]
   );
+
+  const handleSwipeComplete = useCallback(() => {
+    if (!exitDirection) return;
+
+    const nextIndex = currentIndex + 1;
+
+    if (nextIndex >= deckRecipes.length) {
+      setCurrentIndex(deckRecipes.length);
+      setExitDirection(null);
+      setIsRefilling(true);
+      setIsSwiping(false);
+
+      refillTimeoutRef.current = setTimeout(() => {
+        setDeckRecipes(shuffleRecipes(deckRecipes));
+        setCurrentIndex(0);
+        setIsRefilling(false);
+      }, 700);
+      return;
+    }
+
+    setCurrentIndex(nextIndex);
+    setExitDirection(null);
+    setIsSwiping(false);
+  }, [currentIndex, deckRecipes, exitDirection]);
 
   const handleScopeChange = (s: FilterScope) => {
     if ((s === "mine" || s === "following") && !user) {
@@ -193,34 +198,42 @@ export default function DiscoverPage() {
         <>
           <div className="flex-1 flex items-center justify-center px-4 pb-6 pt-0 relative -translate-y-8">
             <div className="relative w-full max-w-[350px] aspect-[3/4.45]">
-              {remaining.slice(0, 3).reverse().map((recipe, reverseIdx) => {
-                const stackIdx = remaining.slice(0, 3).length - 1 - reverseIdx;
-                if (stackIdx === 0) {
+              <AnimatePresence initial={false}>
+                {remaining.slice(0, 4).reverse().map((recipe, reverseIdx) => {
+                  const stackSize = remaining.slice(0, 4).length;
+                  const stackIdx = stackSize - 1 - reverseIdx;
+                  if (stackIdx === 0) {
+                    return (
+                      <SwipeCard
+                        key={recipe.id}
+                        recipe={recipe}
+                        onSwipe={handleSwipe}
+                        onSwipeComplete={handleSwipeComplete}
+                        exitDirection={exitDirection}
+                        showAuthor={showAuthor}
+                      />
+                    );
+                  }
                   return (
-                    <SwipeCard
+                    <motion.div
                       key={recipe.id}
-                      recipe={recipe}
-                      onSwipe={handleSwipe}
-                      exitDirection={exitDirection}
-                      showAuthor={showAuthor}
-                    />
+                      className="absolute inset-0 rounded-3xl overflow-hidden"
+                      initial={{ scale: 0.9, y: stackIdx * 14 + 4, opacity: 0 }}
+                      animate={{
+                        scale: 1 - stackIdx * 0.04,
+                        y: stackIdx * 12,
+                        opacity: 1 - stackIdx * 0.1,
+                        zIndex: 10 - stackIdx,
+                        filter: `brightness(${1 - stackIdx * 0.06})`,
+                      }}
+                      exit={{ scale: 0.9, y: stackIdx * 14 + 8, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 260, damping: 26, mass: 0.8 }}
+                    >
+                      <CardContent recipe={recipe} showAuthor={showAuthor} />
+                    </motion.div>
                   );
-                }
-                return (
-                  <motion.div
-                    key={recipe.id}
-                    className="absolute inset-0 rounded-3xl overflow-hidden"
-                    style={{
-                      scale: 1 - stackIdx * 0.05,
-                      y: stackIdx * 12,
-                      zIndex: 3 - stackIdx,
-                      filter: `brightness(${1 - stackIdx * 0.08})`,
-                    }}
-                  >
-                    <CardContent recipe={recipe} showAuthor={showAuthor} />
-                  </motion.div>
-                );
-              })}
+                })}
+              </AnimatePresence>
 
               <div className="absolute left-0 right-0 bottom-5 z-20 flex items-center justify-center gap-8 px-5 pointer-events-none">
                 <motion.button
@@ -253,11 +266,13 @@ export default function DiscoverPage() {
 function SwipeCard({
   recipe,
   onSwipe,
+  onSwipeComplete,
   exitDirection,
   showAuthor,
 }: {
   recipe: RecipeWithAuthor;
   onSwipe: (dir: "left" | "right") => void;
+  onSwipeComplete: () => void;
   exitDirection: "left" | "right" | null;
   showAuthor: boolean;
 }) {
@@ -270,10 +285,8 @@ function SwipeCard({
   const handleDragEnd = (_: any, info: PanInfo) => {
     const threshold = 80;
     if (info.offset.x > threshold) {
-      animate(x, 500, { type: "spring", duration: 0.5 });
       onSwipe("right");
     } else if (info.offset.x < -threshold) {
-      animate(x, -500, { type: "spring", duration: 0.5 });
       onSwipe("left");
     } else {
       animate(x, 0, { type: "spring", stiffness: 400, damping: 25 });
@@ -286,16 +299,20 @@ function SwipeCard({
       style={{ x, rotate, zIndex: 10 }}
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.9}
+      dragElastic={0.8}
       onDragEnd={handleDragEnd}
+      initial={{ scale: 0.95, y: 14, opacity: 0 }}
       animate={
         exitDirection === "left"
-          ? { x: -500, opacity: 0, rotate: -15 }
+          ? { x: -520, opacity: 0, rotate: -16, scale: 1 }
           : exitDirection === "right"
-          ? { x: 500, opacity: 0, rotate: 15 }
-          : {}
+          ? { x: 520, opacity: 0, rotate: 16, scale: 1 }
+          : { x: 0, scale: 1, y: 0, opacity: 1 }
       }
-      transition={{ type: "spring", stiffness: 250, damping: 25 }}
+      transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.9 }}
+      onAnimationComplete={() => {
+        if (exitDirection) onSwipeComplete();
+      }}
       data-testid="card-swipe"
     >
       <CardContent recipe={recipe} showAuthor={showAuthor} />
