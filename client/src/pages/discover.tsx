@@ -34,6 +34,7 @@ export default function DiscoverPage() {
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
   const [isRefilling, setIsRefilling] = useState(false);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [swipeProgress, setSwipeProgress] = useState(0);
   const { openRecipe } = useRecipeDetail();
   const openTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -45,6 +46,7 @@ export default function DiscoverPage() {
       setExitDirection(null);
       setIsRefilling(false);
       setIsSwiping(false);
+      setSwipeProgress(0);
       return;
     }
 
@@ -53,6 +55,7 @@ export default function DiscoverPage() {
     setExitDirection(null);
     setIsRefilling(false);
     setIsSwiping(false);
+    setSwipeProgress(0);
   }, [recipes, scope]);
 
   useEffect(() => {
@@ -71,12 +74,13 @@ export default function DiscoverPage() {
 
       setIsSwiping(true);
       setExitDirection(direction);
+      setSwipeProgress(1);
 
       if (direction === "right" && deckRecipes[currentIndex]) {
         openTimeoutRef.current = setTimeout(() => {
           const recipe = deckRecipes[currentIndex];
           if (recipe) openRecipe(recipe);
-        }, 220);
+        }, 180);
       }
     },
     [deckRecipes, currentIndex, isRefilling, isSwiping, exitDirection, openRecipe]
@@ -92,18 +96,20 @@ export default function DiscoverPage() {
       setExitDirection(null);
       setIsRefilling(true);
       setIsSwiping(false);
+      setSwipeProgress(0);
 
       refillTimeoutRef.current = setTimeout(() => {
         setDeckRecipes(shuffleRecipes(deckRecipes));
         setCurrentIndex(0);
         setIsRefilling(false);
-      }, 700);
+      }, 650);
       return;
     }
 
     setCurrentIndex(nextIndex);
     setExitDirection(null);
     setIsSwiping(false);
+    setSwipeProgress(0);
   }, [currentIndex, deckRecipes, exitDirection]);
 
   const handleScopeChange = (s: FilterScope) => {
@@ -114,6 +120,7 @@ export default function DiscoverPage() {
     setScope(s);
     setCurrentIndex(0);
     setExitDirection(null);
+    setSwipeProgress(0);
   };
 
   if (isLoading) {
@@ -198,42 +205,52 @@ export default function DiscoverPage() {
         <>
           <div className="flex-1 flex items-center justify-center px-4 pb-6 pt-0 relative -translate-y-8">
             <div className="relative w-full max-w-[350px] aspect-[3/4.45]">
-              <AnimatePresence initial={false}>
-                {remaining.slice(0, 4).reverse().map((recipe, reverseIdx) => {
-                  const stackSize = remaining.slice(0, 4).length;
-                  const stackIdx = stackSize - 1 - reverseIdx;
-                  if (stackIdx === 0) {
-                    return (
+              {remaining.slice(0, 5).reverse().map((recipe, reverseIdx) => {
+                const stackSize = remaining.slice(0, 5).length;
+                const stackIdx = stackSize - 1 - reverseIdx;
+
+                if (stackIdx === 0) {
+                  return (
+                    <AnimatePresence mode="wait" initial={false} key={`active-${recipe.id}`}>
                       <SwipeCard
                         key={recipe.id}
                         recipe={recipe}
                         onSwipe={handleSwipe}
                         onSwipeComplete={handleSwipeComplete}
+                        onDragProgress={setSwipeProgress}
                         exitDirection={exitDirection}
                         showAuthor={showAuthor}
                       />
-                    );
-                  }
-                  return (
-                    <motion.div
-                      key={recipe.id}
-                      className="absolute inset-0 rounded-3xl overflow-hidden"
-                      initial={{ scale: 0.9, y: stackIdx * 14 + 4, opacity: 0 }}
-                      animate={{
-                        scale: 1 - stackIdx * 0.04,
-                        y: stackIdx * 12,
-                        opacity: 1 - stackIdx * 0.1,
-                        zIndex: 10 - stackIdx,
-                        filter: `brightness(${1 - stackIdx * 0.06})`,
-                      }}
-                      exit={{ scale: 0.9, y: stackIdx * 14 + 8, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 260, damping: 26, mass: 0.8 }}
-                    >
-                      <CardContent recipe={recipe} showAuthor={showAuthor} />
-                    </motion.div>
+                    </AnimatePresence>
                   );
-                })}
-              </AnimatePresence>
+                }
+
+                const baseScale = 1 - stackIdx * 0.06;
+                const baseY = stackIdx * 16;
+                const baseBrightness = 1 - stackIdx * 0.07;
+                const baseOpacity = 1 - stackIdx * 0.13;
+                const pullFactor = stackIdx === 1 ? 1 : stackIdx === 2 ? 0.7 : stackIdx === 3 ? 0.45 : 0.25;
+                const pull = swipeProgress * pullFactor;
+
+                return (
+                  <motion.div
+                    key={recipe.id}
+                    layout
+                    className="absolute inset-0 rounded-3xl overflow-hidden"
+                    initial={false}
+                    animate={{
+                      scale: baseScale + pull * 0.045,
+                      y: baseY - pull * 10,
+                      opacity: baseOpacity + pull * 0.12,
+                      zIndex: 12 - stackIdx,
+                      filter: `brightness(${baseBrightness + pull * 0.06})`,
+                    }}
+                    transition={{ type: "spring", stiffness: 260, damping: 24, mass: 0.7 }}
+                  >
+                    <CardContent recipe={recipe} showAuthor={showAuthor} />
+                  </motion.div>
+                );
+              })}
 
               <div className="absolute left-0 right-0 bottom-5 z-20 flex items-center justify-center gap-8 px-5 pointer-events-none">
                 <motion.button
@@ -267,51 +284,66 @@ function SwipeCard({
   recipe,
   onSwipe,
   onSwipeComplete,
+  onDragProgress,
   exitDirection,
   showAuthor,
 }: {
   recipe: RecipeWithAuthor;
   onSwipe: (dir: "left" | "right") => void;
   onSwipeComplete: () => void;
+  onDragProgress: (value: number) => void;
   exitDirection: "left" | "right" | null;
   showAuthor: boolean;
 }) {
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-12, 12]);
-  const likeOpacity = useTransform(x, [0, 80], [0, 1]);
-  const nopeOpacity = useTransform(x, [-80, 0], [1, 0]);
-  const glowOpacity = useTransform(x, [0, 120], [0, 0.3]);
+  const rotate = useTransform(x, [-220, 220], [-10, 10]);
+  const likeOpacity = useTransform(x, [0, 75], [0, 1]);
+  const nopeOpacity = useTransform(x, [-75, 0], [1, 0]);
+  const glowOpacity = useTransform(x, [0, 130], [0, 0.3]);
 
   const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 80;
+    const threshold = 95;
+    const absProgress = Math.min(1, Math.abs(info.offset.x) / 150);
+
     if (info.offset.x > threshold) {
+      onDragProgress(Math.max(0.8, absProgress));
       onSwipe("right");
     } else if (info.offset.x < -threshold) {
+      onDragProgress(Math.max(0.8, absProgress));
       onSwipe("left");
     } else {
-      animate(x, 0, { type: "spring", stiffness: 400, damping: 25 });
+      onDragProgress(0);
+      animate(x, 0, { type: "spring", stiffness: 420, damping: 30, mass: 0.6 });
     }
   };
 
   return (
     <motion.div
+      layout
       className="absolute inset-0 rounded-3xl overflow-hidden cursor-grab active:cursor-grabbing touch-none select-none shadow-lg"
-      style={{ x, rotate, zIndex: 10 }}
+      style={{ x, rotate, zIndex: 20 }}
       drag="x"
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.8}
+      dragElastic={0.55}
+      onDrag={(_, info) => {
+        const progress = Math.min(1, Math.abs(info.offset.x) / 140);
+        onDragProgress(progress);
+      }}
       onDragEnd={handleDragEnd}
-      initial={{ scale: 0.95, y: 14, opacity: 0 }}
+      initial={false}
       animate={
         exitDirection === "left"
-          ? { x: -520, opacity: 0, rotate: -16, scale: 1 }
+          ? { x: -560, opacity: 0, rotate: -14, scale: 1.01 }
           : exitDirection === "right"
-          ? { x: 520, opacity: 0, rotate: 16, scale: 1 }
+          ? { x: 560, opacity: 0, rotate: 14, scale: 1.01 }
           : { x: 0, scale: 1, y: 0, opacity: 1 }
       }
-      transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.9 }}
+      transition={{ type: "spring", stiffness: 260, damping: 26, mass: 0.75 }}
       onAnimationComplete={() => {
-        if (exitDirection) onSwipeComplete();
+        if (exitDirection) {
+          onDragProgress(0);
+          onSwipeComplete();
+        }
       }}
       data-testid="card-swipe"
     >
