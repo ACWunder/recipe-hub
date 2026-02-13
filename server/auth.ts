@@ -22,7 +22,7 @@ const configuredAdminUsernames = (process.env.ADMIN_USERNAMES ?? "")
   .map((name) => name.trim().toLowerCase())
   .filter(Boolean);
 
-const adminUsernames = new Set(["arthur", ...configuredAdminUsernames]);
+const adminUsernames = new Set(["arthur", "adminarthur", ...configuredAdminUsernames]);
 
 export function isAdminUser(user: Pick<Express.User, "username"> | null | undefined): boolean {
   if (!user?.username) return false;
@@ -38,6 +38,27 @@ function sessionUserFromDbUser(user: User): Express.User {
   };
 }
 
+export async function ensureBootstrapAdminUser() {
+  if (!bootstrapAdminUsername || !bootstrapAdminPassword) {
+    log("Skipping bootstrap admin user setup due to empty credentials", "auth");
+    return;
+  }
+
+  const existing = await storage.getUserByUsername(bootstrapAdminUsername);
+  if (existing) {
+    log(`Bootstrap admin user '${bootstrapAdminUsername}' already exists`, "auth");
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash(bootstrapAdminPassword, 10);
+  await storage.createUser({
+    username: bootstrapAdminUsername,
+    passwordHash,
+    displayName: "Admin",
+  });
+
+  log(`Created bootstrap admin user '${bootstrapAdminUsername}'`, "auth");
+}
 
 export function setupAuth(app: Express) {
   app.use(
