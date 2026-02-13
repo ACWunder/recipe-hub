@@ -28,6 +28,32 @@ interface RecipeDetailSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const AVAILABLE_TAGS = [
+  "Asian",
+  "Italian",
+  "Seafood",
+  "Vegetarian",
+  "Vegan",
+  "Breakfast",
+  "Baked-Goods",
+  "Healthy",
+  "High-Protein",
+  "Indian",
+  "Chinese",
+  "Vietnamese",
+  "Thai",
+  "German",
+  "Oven-Baked",
+  "Rice",
+  "Pasta",
+  "Salad",
+  "Spicy",
+  "Snack",
+  "Soup",
+  "Sweet",
+  "Try",
+] as const;
+
 export default function RecipeDetailSheet({ recipe, open, onOpenChange }: RecipeDetailSheetProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -37,7 +63,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [tagsText, setTagsText] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [ingredientsText, setIngredientsText] = useState("");
   const [stepsText, setStepsText] = useState("");
   const [isHidden, setIsHidden] = useState(false);
@@ -46,7 +72,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
     setTitle(currentRecipe.title ?? "");
     setDescription(currentRecipe.description ?? "");
     setImageUrl(currentRecipe.imageUrl ?? "");
-    setTagsText(Array.isArray(currentRecipe.tags) ? currentRecipe.tags.join(", ") : "");
+    setSelectedTags(Array.isArray(currentRecipe.tags) ? currentRecipe.tags : []);
     setIngredientsText(Array.isArray(currentRecipe.ingredients) ? currentRecipe.ingredients.join("\n") : "");
     setStepsText(Array.isArray(currentRecipe.steps) ? currentRecipe.steps.join("\n") : "");
     setIsHidden(!!currentRecipe.isHidden);
@@ -82,10 +108,7 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
         description: description.trim() || null,
         imageUrl: imageUrl.trim() || null,
         isHidden,
-        tags: tagsText
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
+        tags: selectedTags,
         ingredients: ingredientsText
           .split("\n")
           .map((l) => l.trim())
@@ -130,6 +153,10 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
   const steps = Array.isArray(recipe.steps) ? recipe.steps : [];
 
   const isOwner = !!user && recipe.createdByUserId === user.id;
+  const orderedTags = [
+    ...selectedTags,
+    ...AVAILABLE_TAGS.filter((tag) => !selectedTags.includes(tag)),
+  ];
   const canSave =
     title.trim().length > 0 &&
     ingredientsText
@@ -148,6 +175,12 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
       else next.add(index);
       return next;
     });
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
   };
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -253,12 +286,26 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Tags</label>
-                    <Input
-                      value={tagsText}
-                      onChange={(e) => setTagsText(e.target.value)}
-                      className="rounded-xl bg-card border-0"
-                      data-testid="input-edit-tags"
-                    />
+                    <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
+                      {orderedTags.map((tag) => {
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full transition-all ${
+                              isSelected
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-card text-muted-foreground"
+                            }`}
+                            data-testid={`tag-option-edit-${tag}`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : recipe.imageUrl ? (
