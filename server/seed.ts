@@ -1702,7 +1702,7 @@ const seedRecipes = [
     isBase: true,
   },
     {
-    title: " Wraps",
+    title: "Wraps",
     description: "Quick wraps filled with sautéed chickpeas and vegetables, plus a simple lime guacamole. Warm, savory, and fresh at the same time. Roll up and serve right away.",
     imageUrl: "/images/gemuese-wrap.jpg",
     tags: ["Vegetarian", "Quick"],
