@@ -192,9 +192,17 @@ export default function RecipeDetailSheet({ recipe, open, onOpenChange }: Recipe
     }
   };
 
+  const handleSheetOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setIsEditing(false);
+      resetEditForm(recipe);
+    }
+    onOpenChange(nextOpen);
+  };
+
   return (
     <>
-      <Drawer.Root open={open} onOpenChange={onOpenChange}>
+      <Drawer.Root open={open} onOpenChange={handleSheetOpenChange}>
         <Drawer.Portal>
           <Drawer.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" />
           <Drawer.Content className="h-[94dvh] rounded-t-3xl outline-none bg-background fixed inset-x-0 bottom-0 z-50 flex flex-col">
